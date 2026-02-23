@@ -29,22 +29,9 @@
 		9757E5FF2F4BD6E4000BB0CC /* GitHubRepoExplorerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GitHubRepoExplorerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		97F5B9402F4BEDA800303497 /* Exceptions for "GitHubRepoExplorer" folder in "GitHubRepoExplorer" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Core/Networking/Untitled.swift,
-			);
-			target = 9757E5E52F4BD6E2000BB0CC /* GitHubRepoExplorer */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9757E5E82F4BD6E2000BB0CC /* GitHubRepoExplorer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				97F5B9402F4BEDA800303497 /* Exceptions for "GitHubRepoExplorer" folder in "GitHubRepoExplorer" target */,
-			);
 			path = GitHubRepoExplorer;
 			sourceTree = "<group>";
 		};

@@ -79,3 +79,47 @@ struct Repository: Codable, Identifiable, Hashable {
         }
     }
 }
+
+// MARK: - Mock Data for Previews
+extension Repository {
+    static let mock = Repository(
+        id: 1,
+        name: "ExampleRepo",
+        fullName: "octocat/ExampleRepo",
+        description: "An example repository for previews",
+        fork: false,
+        htmlUrl: "https://github.com/octocat/ExampleRepo",
+        owner: Owner(
+            login: "octocat",
+            avatarUrl: "https://avatars.githubusercontent.com/u/1?v=4",
+            type: "User"
+        ),
+        stargazersCount: 123,
+        language: "Swift",
+        forksCount: 10,
+        openIssuesCount: 2,
+        updatedAt: "2026-02-23T12:00:00Z"
+    )
+    
+    static let mockList: [Repository] = [
+        mock,
+        Repository(
+            id: 2,
+            name: "ExampleRepo2",
+            fullName: "octocat/ExampleRepo2",
+            description: "An example repository for previews",
+            fork: false,
+            htmlUrl: "https://github.com/octocat/ExampleRepo2",
+            owner: Owner(
+                login: "octocat",
+                avatarUrl: "https://avatars.githubusercontent.com/u/1?v=4",
+                type: "User"
+            ),
+            stargazersCount: 123,
+            language: "Swift",
+            forksCount: 10,
+            openIssuesCount: 2,
+            updatedAt: "2026-02-23T12:00:00Z"
+        )
+    ]
+}
