@@ -2,7 +2,7 @@
 //  GitHubRepoExplorerApp.swift
 //  GitHubRepoExplorer
 //
-//  Created by Terry Li on 23/02/2026.
+//  Created by Meng Li on 23/02/2026.
 //
 
 import SwiftUI
