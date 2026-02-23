@@ -13,7 +13,21 @@ struct ContentView: View {
     @Query private var items: [Item]
 
     var body: some View {
-        RepositoryListView()
+        TabView {
+            NavigationStack {
+                RepoListView()
+            }
+            .tabItem {
+                Label("Explore", systemImage: "globe")
+            }
+
+            NavigationStack {
+                BookmarkListView()
+            }
+            .tabItem {
+                Label("Bookmarks", systemImage: "bookmark.fill")
+            }
+        }
     }
     
 //    var body: some View {
