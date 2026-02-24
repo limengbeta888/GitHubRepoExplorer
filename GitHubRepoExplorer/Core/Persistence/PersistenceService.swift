@@ -6,28 +6,20 @@
 //
 
 import Foundation
-
-// MARK: - Keys
-
-enum PersistenceKey: String {
-    case bookmarkedRepositories = "bookmarked_repositories"
-}
+import SwiftData
 
 // MARK: - Errors
 
 enum PersistenceError: LocalizedError {
-    case notFound(PersistenceKey)
-    case encodingFailed(Error)
-    case decodingFailed(Error)
+    case notFound
+    case saveFailed(Error)
+    case loadFailed(Error)
 
     var errorDescription: String? {
         switch self {
-        case .notFound(let key):      
-            return "No data found for key: \(key.rawValue)"
-        case .encodingFailed(let e):  
-            return "Failed to encode: \(e.localizedDescription)"
-        case .decodingFailed(let e):
-            return "Failed to decode: \(e.localizedDescription)"
+        case .notFound:           return "Record not found."
+        case .saveFailed(let e):  return "Failed to save: \(e.localizedDescription)"
+        case .loadFailed(let e):  return "Failed to load: \(e.localizedDescription)"
         }
     }
 }
@@ -35,52 +27,98 @@ enum PersistenceError: LocalizedError {
 // MARK: - Protocol
 
 protocol PersistenceServiceProtocol {
-    func save<T: Encodable>(_ value: T, forKey key: PersistenceKey) throws
-    func load<T: Decodable>(forKey key: PersistenceKey) throws -> T
-    func delete(forKey key: PersistenceKey)
+    func add(_ repo: Repository) throws
+    func remove(_ repo: Repository) throws
+    func update(_ repo: Repository) throws
+    func loadAll() throws -> [Repository]
+    func deleteAll() throws
 }
 
-// MARK: - UserDefaults Implementation
+// MARK: - Implementation
 
-final class UserDefaultsPersistenceService: PersistenceServiceProtocol {
+final class PersistenceService: PersistenceServiceProtocol {
+    static let shared = PersistenceService()
     
-    static let shared = UserDefaultsPersistenceService()
-    
-    private let defaults: UserDefaults
-    private let encoder: JSONEncoder
-    private let decoder: JSONDecoder
+    private let context: ModelContext
 
-    private init(
-        defaults: UserDefaults = .standard,
-        encoder: JSONEncoder = JSONEncoder(),
-        decoder: JSONDecoder = JSONDecoder()
-    ) {
-        self.defaults = defaults
-        self.encoder = encoder
-        self.decoder = decoder
+    // MARK: - Init
+
+    private init() {
+        let schema = Schema([RepositoryModel.self])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let container = try! ModelContainer(for: schema, configurations: config)
+        self.context = ModelContext(container)
     }
 
-    func save<T: Encodable>(_ value: T, forKey key: PersistenceKey) throws {
+    init(container: ModelContainer) {
+        self.context = ModelContext(container)
+    }
+
+    // MARK: - PersistenceServiceProtocol
+
+    func add(_ repo: Repository) throws {
+        context.insert(RepositoryModel(from: repo))
+        try save()
+    }
+
+    func remove(_ repo: Repository) throws {
+        guard let model = try fetchModel(id: repo.id) else { return }
+        
+        context.delete(model)
+        
+        try save()
+    }
+
+    func update(_ repo: Repository) throws {
+        guard let model = try fetchModel(id: repo.id) else { return }
+        
+        model.stargazersCount = repo.stargazersCount
+        model.language = repo.language
+        model.forksCount = repo.forksCount
+        model.openIssuesCount = repo.openIssuesCount
+        model.updatedAt = repo.updatedAt
+        
+        try save()
+    }
+
+    func loadAll() throws -> [Repository] {
+        let descriptor = FetchDescriptor<RepositoryModel>(
+            sortBy: [SortDescriptor(\.insertedAt, order: .reverse)]
+        )
+        return try context.fetch(descriptor).map { $0.toRepository() }
+    }
+
+    func deleteAll() throws {
+        try context.delete(model: RepositoryModel.self)
+        try save()
+    }
+
+    // MARK: - Private
+
+    private func fetchModel(id: Int) throws -> RepositoryModel? {
+        var descriptor = FetchDescriptor<RepositoryModel>(
+            predicate: #Predicate { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
+    private func save() throws {
         do {
-            let data = try encoder.encode(value)
-            defaults.set(data, forKey: key.rawValue)
+            try context.save()
         } catch {
-            throw PersistenceError.encodingFailed(error)
+            throw PersistenceError.saveFailed(error)
         }
     }
+}
 
-    func load<T: Decodable>(forKey key: PersistenceKey) throws -> T {
-        guard let data = defaults.data(forKey: key.rawValue) else {
-            throw PersistenceError.notFound(key)
-        }
-        do {
-            return try decoder.decode(T.self, from: data)
-        } catch {
-            throw PersistenceError.decodingFailed(error)
-        }
-    }
+// MARK: - In-memory variant for tests and previews
 
-    func delete(forKey key: PersistenceKey) {
-        defaults.removeObject(forKey: key.rawValue)
+extension PersistenceService {
+    static func inMemory() -> PersistenceService {
+        let schema = Schema([RepositoryModel.self])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try! ModelContainer(for: schema, configurations: config)
+        return PersistenceService(container: container)
     }
 }

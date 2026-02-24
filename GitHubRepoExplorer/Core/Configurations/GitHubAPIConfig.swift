@@ -5,10 +5,10 @@
 //  Created by Meng Li on 24/02/2026.
 //
 
-struct GitHubAPIConfig: APIConfigProtocol {
+class GitHubAPIConfig: APIConfigProtocol {
     private(set) var baseURL: String = "https://api.github.com"
     
-    /// Only use the same url for now
+    /// Use the same url for now
     let devBaseURL = "https://api.github.com"
     let stagingBaseURL = "https://api.github.com"
     let prodBaseURL = "https://api.github.com"
@@ -23,7 +23,7 @@ struct GitHubAPIConfig: APIConfigProtocol {
         baseURL = devBaseURL
     }
     
-    mutating func switchTo(_ environment: AppEnvironment) {
+    func switchTo(_ environment: AppEnvironment) {
         switch environment {
         case .dev:
             baseURL = devBaseURL

@@ -18,5 +18,5 @@ protocol APIConfigProtocol {
     var stagingBaseURL: String { get }
     var prodBaseURL: String { get }
     
-    mutating func switchTo(_ environment: AppEnvironment)
+    func switchTo(_ environment: AppEnvironment)
 }

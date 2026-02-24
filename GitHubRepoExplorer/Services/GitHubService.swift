@@ -21,7 +21,6 @@ protocol GitHubServiceProtocol {
 // MARK: - Implementation
 
 actor GitHubService: GitHubServiceProtocol {
-
     static let shared = GitHubService()
 
     private let client: NetworkClientProtocol
@@ -36,7 +35,7 @@ actor GitHubService: GitHubServiceProtocol {
         self.config = config
     }
 
-    // MARK: List
+    // MARK: - List
 
     func fetchRepositories() async throws -> (repos: [Repository], nextURL: URL?) {
         let response: NetworkResponse<[Repository]> = try await client.requestWithResponse(
@@ -52,7 +51,7 @@ actor GitHubService: GitHubServiceProtocol {
         return (response.body, response.nextPageURL)
     }
 
-    // MARK: Detail (with actor-isolated cache)
+    // MARK: - Detail (with actor-isolated cache)
 
     func fetchDetail(for repo: Repository) async throws -> RepositoryDetail {
         if let cached = detailCache[repo.fullName] { return cached }
@@ -69,13 +68,18 @@ actor GitHubService: GitHubServiceProtocol {
         await withTaskGroup(of: (String, RepositoryDetail)?.self) { group in
             for repo in repos {
                 group.addTask {
-                    guard let detail = try? await self.fetchDetail(for: repo) else { return nil }
+                    guard let detail = try? await self.fetchDetail(for: repo) else {
+                        return nil
+                    }
                     return (repo.fullName, detail)
                 }
             }
+            
             var results: [String: RepositoryDetail] = [:]
             for await pair in group {
-                if let (key, value) = pair { results[key] = value }
+                if let (key, value) = pair {
+                    results[key] = value
+                }
             }
             return results
         }

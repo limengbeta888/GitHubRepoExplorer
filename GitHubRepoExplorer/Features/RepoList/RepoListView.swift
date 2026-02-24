@@ -176,7 +176,7 @@ struct RepoListView: View {
     store.state.repositories = Repository.allMocks
     store.state.phase = .loaded
     return NavigationStack {
-        RepoListView(store: store, bookmarkStore: BookmarkListStore(persistence: MockPersistenceService()))
+        RepoListView(store: store, bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
     }
 }
 
@@ -184,7 +184,7 @@ struct RepoListView: View {
     let store = RepoListStore(service: MockGitHubService())
     store.state.phase = .loadingInitial
     return NavigationStack {
-        RepoListView(store: store, bookmarkStore: BookmarkListStore(persistence: MockPersistenceService()))
+        RepoListView(store: store, bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
     }
 }
 
@@ -192,6 +192,6 @@ struct RepoListView: View {
     let store = RepoListStore(service: MockGitHubService(behaviour: .rateLimited))
     store.state.phase = .error("GitHub API rate limit exceeded.")
     return NavigationStack {
-        RepoListView(store: store, bookmarkStore: BookmarkListStore(persistence: MockPersistenceService()))
+        RepoListView(store: store, bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
     }
 }

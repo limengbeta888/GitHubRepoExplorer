@@ -25,7 +25,7 @@ final class RepoListStore: ObservableObject {
         persistence: PersistenceServiceProtocol? = nil
     ) {
         self.service = service ?? GitHubService.shared
-        self.persistence = persistence ?? UserDefaultsPersistenceService.shared
+        self.persistence = persistence ?? PersistenceService.shared
     }
 
     // MARK: - Dispatch
@@ -97,18 +97,10 @@ final class RepoListStore: ObservableObject {
     }
 
     private func enrichPersistedBookmarks(with detailMap: [String: RepositoryDetail]) {
-        var saved: [Repository] = (try? persistence.load(forKey: .bookmarkedRepositories)) ?? []
-        guard !saved.isEmpty else { return }
-        
-        var changed = false
-        saved = saved.map { repo in
-            guard let detail = detailMap[repo.fullName] else { return repo }
-            changed = true
-            return repo.merging(detail: detail)
-        }
-        
-        if changed {
-            try? persistence.save(saved, forKey: .bookmarkedRepositories)
+        let saved = (try? persistence.loadAll()) ?? []
+        saved.forEach { repo in
+            guard let detail = detailMap[repo.fullName] else { return }
+            try? persistence.update(repo.merging(detail: detail))
         }
     }
 }

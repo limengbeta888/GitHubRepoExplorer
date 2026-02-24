@@ -22,7 +22,7 @@ final class RepoDetailStore: ObservableObject {
     ) {
         self.state = RepoDetailState(repository: repo)
         self.service = service ?? GitHubService.shared
-        self.persistence = persistence ?? UserDefaultsPersistenceService.shared
+        self.persistence = persistence ?? PersistenceService.shared
     }
 
     // MARK: - Dispatch
@@ -62,20 +62,15 @@ final class RepoDetailStore: ObservableObject {
     }
 
     private func loadBookmarkStatus() {
-        let saved: [Repository] = (try? persistence.load(forKey: .bookmarkedRepositories)) ?? []
+        let saved = (try? persistence.loadAll()) ?? []
         dispatch(.bookmarkStatusLoaded(saved.contains { $0.id == state.repository.id }))
     }
 
     private func persistBookmarkChange() {
-        var saved: [Repository] = (try? persistence.load(forKey: .bookmarkedRepositories)) ?? []
         if state.isBookmarked {
-            if !saved.contains(where: { $0.id == state.repository.id }) {
-                saved.insert(state.repository, at: 0)
-            }
+            try? persistence.add(state.repository)
         } else {
-            saved.removeAll { $0.id == state.repository.id }
+            try? persistence.remove(state.repository)
         }
-        
-        try? persistence.save(saved, forKey: .bookmarkedRepositories)
     }
 }

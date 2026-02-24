@@ -17,27 +17,34 @@ final class BookmarkListStore: ObservableObject {
     private let persistence: PersistenceServiceProtocol
 
     init(persistence: PersistenceServiceProtocol? = nil) {
-        self.persistence = persistence ?? UserDefaultsPersistenceService.shared
+        self.persistence = persistence ?? PersistenceService.shared
         loadFromDisk()
     }
 
     // MARK: - Dispatch
-
+    
     func dispatch(_ intent: BookmarkListIntent) {
-        let newState = BookmarkListReducer.reduce(state, intent: intent)
+        state = BookmarkListReducer.reduce(state, intent: intent)
 
-        // Write to disk only when the persisted set actually changes
-        if newState.bookmarkedRepos != state.bookmarkedRepos {
-            try? persistence.save(newState.bookmarkedRepos, forKey: .bookmarkedRepositories)
+        switch intent {
+        case .bookmark(let repo):
+            try? persistence.add(repo)
+
+        case .removeBookmark(let repo):
+            try? persistence.remove(repo)
+
+        case .updateEnriched(let repos):
+            repos.forEach { try? persistence.update($0) }
+
+        case .loadBookmarks:
+            break
         }
-
-        state = newState
     }
 
     // MARK: - Private
 
     private func loadFromDisk() {
-        let repos: [Repository] = (try? persistence.load(forKey: .bookmarkedRepositories)) ?? []
+        let repos = (try? persistence.loadAll()) ?? []
         state = BookmarkListReducer.reduce(state, intent: .loadBookmarks(repos))
     }
 }
