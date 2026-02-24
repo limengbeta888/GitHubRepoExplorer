@@ -8,43 +8,33 @@
 import SwiftUI
 
 struct BookmarkListView: View {
-
-    @StateObject private var store: BookmarkListStore
-
-    init(store: BookmarkListStore = .shared) {
-        _store = StateObject(wrappedValue: store)
-    }
+    @ObservedObject var store: BookmarkListStore
 
     private var state: BookmarkListState { store.state }
 
     var body: some View {
         Group {
-            if state.filteredRepos.isEmpty {
+            if state.bookmarkedRepos.isEmpty {
                 emptyView
             } else {
                 repoList
             }
         }
         .navigationTitle("Bookmarks")
-        .navigationBarTitleDisplayMode(.large)
-        .searchable(
-            text: Binding(get: { state.searchText },
-                          set: { store.dispatch(.updateSearch($0)) }),
-            prompt: "Search bookmarks…"
-        )
+        .navigationBarTitleDisplayMode(.automatic)
+        .safeAreaInset(edge: .bottom) {
+            if !state.bookmarkedRepos.isEmpty {
+                bottomHint
+            }
+        }
     }
 
     // MARK: - Empty state
 
     private var emptyView: some View {
         ContentUnavailableView(
-            state.searchText.isEmpty ? "No Bookmarks" : "No Results",
+            "No Bookmarks",
             systemImage: "bookmark",
-            description: Text(
-                state.searchText.isEmpty
-                    ? "Swipe left on any repository and tap Bookmark."
-                    : "No bookmarks match \"\(state.searchText)\"."
-            )
         )
     }
 
@@ -52,9 +42,10 @@ struct BookmarkListView: View {
 
     private var repoList: some View {
         List {
-            ForEach(state.filteredRepos) { repo in
+            ForEach(state.bookmarkedRepos) { repo in
                 NavigationLink(destination: RepoDetailView(store: RepoDetailStore(repo: repo))) {
-                    RepoRowView(repo: repo)
+                    RepoRowView(repo: repo,
+                                isBookmarked: store.state.isBookmarked(repo))
                 }
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
@@ -66,16 +57,33 @@ struct BookmarkListView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .animation(.default, value: state.filteredRepos.map(\.id))
+        .animation(.default, value: state.bookmarkedRepos.map(\.id))
+    }
+    
+    // MARK: - Hint
+    
+    private var bottomHint: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "hand.point.left")
+            Text("Swipe left on a repository to remove it")
+        }
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
     }
 }
 
 #Preview("Has bookmarks") {
     let store = BookmarkListStore(persistence: MockPersistenceService())
     Repository.allMocks.prefix(3).forEach { store.dispatch(.bookmark($0)) }
-    return NavigationStack { BookmarkListView(store: store) }
+    return NavigationStack {
+        BookmarkListView(store: store)
+    }
 }
 
 #Preview("Empty") {
-    NavigationStack { BookmarkListView(store: BookmarkListStore(persistence: MockPersistenceService())) }
+    NavigationStack {
+        BookmarkListView(store: BookmarkListStore(persistence: MockPersistenceService()))
+    }
 }

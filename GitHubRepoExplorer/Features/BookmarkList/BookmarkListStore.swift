@@ -10,15 +10,14 @@ import Combine
 
 @MainActor
 final class BookmarkListStore: ObservableObject {
-
     static let shared = BookmarkListStore()
 
-    @Published private(set) var state: BookmarkListState = .init()
+    @Published var state: BookmarkListState = .init()
 
     private let persistence: PersistenceServiceProtocol
 
     init(persistence: PersistenceServiceProtocol? = nil) {
-        self.persistence = persistence ?? UserDefaultsPersistenceService()
+        self.persistence = persistence ?? UserDefaultsPersistenceService.shared
         loadFromDisk()
     }
 

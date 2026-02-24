@@ -13,7 +13,6 @@ enum RepoListIntent {
     case loadInitial
     case loadMore
     case changeGrouping(GroupingOption)
-    case updateSearch(String)
 
     // System events dispatched by Store after async work completes
     case repositoriesLoaded([Repository], nextURL: URL?)

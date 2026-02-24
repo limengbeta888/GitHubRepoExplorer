@@ -13,9 +13,10 @@ enum RepoDetailReducer {
         var next = state
 
         switch intent {
-
         case .loadDetail:
-            guard state.repository.stargazersCount == nil else { return state }
+            guard state.repository.stargazersCount == nil else {
+                return state
+            }
             next.phase = .loadingDetail
 
         case .toggleBookmark:

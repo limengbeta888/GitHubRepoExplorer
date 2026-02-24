@@ -4,15 +4,13 @@
 //
 //  Created by Meng Li on 23/02/2026.
 //
-// RepoDetailStore.swift
 
 import Foundation
 import Combine
 
 @MainActor
 final class RepoDetailStore: ObservableObject {
-
-    @Published private(set) var state: RepoDetailState
+    @Published var state: RepoDetailState
 
     private let service: GitHubServiceProtocol
     private let persistence: PersistenceServiceProtocol
@@ -22,9 +20,9 @@ final class RepoDetailStore: ObservableObject {
         service: GitHubServiceProtocol? = nil,
         persistence: PersistenceServiceProtocol? = nil
     ) {
-        self.state       = RepoDetailState(repository: repo)
-        self.service     = service     ?? GitHubService.shared
-        self.persistence = persistence ?? UserDefaultsPersistenceService()
+        self.state = RepoDetailState(repository: repo)
+        self.service = service ?? GitHubService.shared
+        self.persistence = persistence ?? UserDefaultsPersistenceService.shared
     }
 
     // MARK: - Dispatch
@@ -33,11 +31,15 @@ final class RepoDetailStore: ObservableObject {
         state = RepoDetailReducer.reduce(state, intent: intent)
 
         switch intent {
-
         case .loadDetail:
             guard state.phase == .loadingDetail else { return }
-            Task { await fetchDetail() }
-            Task { loadBookmarkStatus() }
+            Task {
+                await fetchDetail()
+            }
+            
+            Task {
+                loadBookmarkStatus()
+            }
 
         case .toggleBookmark:
             // State already flipped by reducer — now sync to persistence
@@ -73,6 +75,7 @@ final class RepoDetailStore: ObservableObject {
         } else {
             saved.removeAll { $0.id == state.repository.id }
         }
+        
         try? persistence.save(saved, forKey: .bookmarkedRepositories)
     }
 }

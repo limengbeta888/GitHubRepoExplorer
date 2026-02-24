@@ -19,7 +19,7 @@ struct ContentView: View {
             .tabItem { Label("Explore", systemImage: "globe") }
 
             NavigationStack {
-                BookmarkListView()
+                BookmarkListView(store: bookmarkListStore)
             }
             .tabItem { Label("Bookmarks", systemImage: "bookmark.fill") }
         }

@@ -12,7 +12,6 @@ enum BookmarkListIntent {
     // User actions
     case bookmark(Repository)
     case removeBookmark(Repository)
-    case updateSearch(String)
 
     // System events
     case loadBookmarks([Repository])

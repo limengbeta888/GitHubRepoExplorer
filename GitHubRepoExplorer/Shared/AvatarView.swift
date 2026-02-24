@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct AvatarView: View {
-
     let urlString: String?
     let size: CGFloat
 
@@ -18,13 +17,21 @@ struct AvatarView: View {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
-                        placeholder.overlay(ProgressView().scaleEffect(0.6))
+                        placeholder
+                            .overlay(ProgressView().scaleEffect(0.6))
+                        
                     case .success(let image):
-                        image.resizable().scaledToFill()
+                        image
+                            .resizable()
+                            .scaledToFill()
+                        
                     case .failure:
-                        placeholder.overlay(Image(systemName: "person").foregroundStyle(.white))
+                        placeholder
+                            .overlay(Image(systemName: "person").foregroundStyle(.white))
+                        
                     @unknown default:
-                        placeholder.overlay(Image(systemName: "person").foregroundStyle(.white))
+                        placeholder
+                            .overlay(Image(systemName: "person").foregroundStyle(.white))
                     }
                 }
             } else {
@@ -46,5 +53,6 @@ struct AvatarView: View {
         AvatarView(urlString: "https://avatars.githubusercontent.com/u/1?v=4", size: 44)
         AvatarView(urlString: nil, size: 44)
         AvatarView(urlString: "bad-url", size: 44)
-    }.padding()
+    }
+    .padding()
 }

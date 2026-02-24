@@ -43,12 +43,14 @@ protocol PersistenceServiceProtocol {
 // MARK: - UserDefaults Implementation
 
 final class UserDefaultsPersistenceService: PersistenceServiceProtocol {
-
+    
+    static let shared = UserDefaultsPersistenceService()
+    
     private let defaults: UserDefaults
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
 
-    init(
+    private init(
         defaults: UserDefaults = .standard,
         encoder: JSONEncoder = JSONEncoder(),
         decoder: JSONDecoder = JSONDecoder()

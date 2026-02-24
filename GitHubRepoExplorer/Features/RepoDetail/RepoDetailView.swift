@@ -8,15 +8,15 @@
 import SwiftUI
 
 struct RepoDetailView: View {
+    @ObservedObject var store: RepoDetailStore
 
-    @StateObject private var store: RepoDetailStore
-
-    init(store: RepoDetailStore) {
-        _store = StateObject(wrappedValue: store)
+    private var state: RepoDetailState {
+        store.state
     }
-
-    private var state: RepoDetailState { store.state }
-    private var repo: Repository       { state.repository }
+    
+    private var repo: Repository {
+        state.repository
+    }
 
     var body: some View {
         ScrollView {
@@ -24,11 +24,27 @@ struct RepoDetailView: View {
                 headerCard
                 statsGrid
                 openInBrowserButton
+                
+                Spacer()
+                
+                if case .error(let msg) = state.phase {
+                    HStack {
+                        Spacer()
+                        
+                        Text(msg)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
+                            .padding()
+                        
+                        Spacer()
+                    }
+                }
             }
             .padding(.vertical)
         }
         .navigationTitle(repo.name)
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.automatic)
         .toolbar { toolbarContent }
         .task { store.dispatch(.loadDetail) }
     }
@@ -38,10 +54,15 @@ struct RepoDetailView: View {
     private var headerCard: some View {
         HStack(spacing: 16) {
             AvatarView(urlString: repo.owner.avatarUrl, size: 60)
+            
             VStack(alignment: .leading, spacing: 4) {
-                Text(repo.fullName).font(.title3.bold())
+                Text(repo.fullName)
+                    .font(.title3.bold())
+                
                 if let desc = repo.description, !desc.isEmpty {
-                    Text(desc).font(.body).foregroundStyle(.secondary)
+                    Text(desc)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -53,24 +74,35 @@ struct RepoDetailView: View {
     private var statsGrid: some View {
         ZStack {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                StatCard(title: "Stars",
-                         value: repo.stargazersCount.map { "\($0)" } ?? "—",
-                         icon: "star.fill", color: .yellow)
-                StatCard(title: "Forks",
-                         value: repo.forksCount.map { "\($0)" } ?? "—",
-                         icon: "arrow.branch", color: .blue)
-                StatCard(title: "Open Issues",
-                         value: repo.openIssuesCount.map { "\($0)" } ?? "—",
-                         icon: "exclamationmark.circle", color: .red)
-                StatCard(title: "Language",
-                         value: repo.language ?? "Unknown",
-                         icon: "chevron.left.forwardslash.chevron.right", color: .green)
-                StatCard(title: "Owner Type",
-                         value: repo.owner.type ?? "Unknown",
-                         icon: "person.circle", color: .purple)
-                StatCard(title: "Fork",
-                         value: repo.fork ? "Yes" : "No",
-                         icon: "arrow.triangle.branch", color: .orange)
+                RepoInfoCard(title: "Stars",
+                             value: repo.stargazersCount.map { "\($0)" } ?? "—",
+                             icon: "star.fill",
+                             color: .yellow)
+                
+                RepoInfoCard(title: "Forks",
+                             value: repo.forksCount.map { "\($0)" } ?? "—",
+                             icon: "arrow.branch",
+                             color: .blue)
+                
+                RepoInfoCard(title: "Open Issues",
+                             value: repo.openIssuesCount.map { "\($0)" } ?? "—",
+                             icon: "exclamationmark.circle",
+                             color: .red)
+                
+                RepoInfoCard(title: "Language",
+                             value: repo.language ?? "Unknown",
+                             icon: "chevron.left.forwardslash.chevron.right",
+                             color: .green)
+                
+                RepoInfoCard(title: "Owner Type",
+                             value: repo.owner.type ?? "Unknown",
+                             icon: "person.circle",
+                             color: .purple)
+                
+                RepoInfoCard(title: "Fork",
+                             value: repo.fork ? "Yes" : "No",
+                             icon: "arrow.triangle.branch",
+                             color: .orange)
             }
             .padding(.horizontal)
 
@@ -79,12 +111,6 @@ struct RepoDetailView: View {
                     .padding()
                     .background(.regularMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-
-            if case .error(let msg) = state.phase {
-                Text(msg)
-                    .font(.footnote).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center).padding()
             }
         }
     }
@@ -115,32 +141,26 @@ struct RepoDetailView: View {
     }
 }
 
-// MARK: - StatCard
+// MARK: - Preview
 
-struct StatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon).foregroundStyle(color)
-                Text(title).font(.caption).foregroundStyle(.secondary)
-            }
-            Text(value).font(.title3.bold()).lineLimit(1).minimumScaleFactor(0.7)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+#Preview("Detail loaded") {
+    let store = RepoDetailStore(repo: .mockOrgRepo)
+    return NavigationStack {
+        RepoDetailView(store: store)
     }
 }
 
-#Preview("Detail loaded") {
-    NavigationStack { RepoDetailView(store: RepoDetailStore(repo: .mockOrgRepo)) }
-}
 #Preview("Pending fetch") {
-    NavigationStack { RepoDetailView(store: RepoDetailStore(repo: .mockOriginal)) }
+    let store = RepoDetailStore(repo: .mockOriginal)
+    return NavigationStack {
+        RepoDetailView(store: store)
+    }
+}
+
+#Preview("Error") {
+    let store = RepoDetailStore(repo: .mockOrgRepo)
+    store.state.phase = .error("GitHub API rate limit exceeded.")
+    return NavigationStack {
+        RepoDetailView(store: store)
+    }
 }

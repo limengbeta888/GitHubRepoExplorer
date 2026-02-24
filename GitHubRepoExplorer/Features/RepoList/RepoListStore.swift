@@ -10,8 +10,7 @@ import Combine
 
 @MainActor
 final class RepoListStore: ObservableObject {
-
-    @Published var state: RepoListState = .init()
+    @Published var state = RepoListState()
 
     private let service: GitHubServiceProtocol
     private let persistence: PersistenceServiceProtocol
@@ -25,8 +24,8 @@ final class RepoListStore: ObservableObject {
         service: GitHubServiceProtocol? = nil,
         persistence: PersistenceServiceProtocol? = nil
     ) {
-        self.service     = service     ?? GitHubService.shared
-        self.persistence = persistence ?? UserDefaultsPersistenceService()
+        self.service = service ?? GitHubService.shared
+        self.persistence = persistence ?? UserDefaultsPersistenceService.shared
     }
 
     // MARK: - Dispatch
@@ -35,39 +34,48 @@ final class RepoListStore: ObservableObject {
         state = RepoListReducer.reduce(state, intent: intent)
 
         switch intent {
-
         case .loadInitial:
+            guard state.phase == .loadingInitial else { return }
             fetchTask?.cancel()
-            fetchTask = Task { await fetchPage() }
+            fetchTask = Task {
+                await fetchPage()
+            }
 
         case .loadMore:
             guard state.phase == .loadingMore else { return }
             fetchTask?.cancel()
-            fetchTask = Task { await fetchPage() }
+            fetchTask = Task {
+                await fetchPage()
+            }
 
         case .changeGrouping(let option):
-            if option.requiresDetail { triggerDetailFetchIfNeeded() }
+            if option.requiresDetail {
+                triggerDetailFetchIfNeeded()
+            }
 
         case .repositoriesLoaded:
-            if state.groupingOption.requiresDetail { triggerDetailFetchIfNeeded() }
+            if state.groupingOption.requiresDetail {
+                triggerDetailFetchIfNeeded()
+            }
 
         case .detailsLoaded(let detailMap):
             // Enrich any persisted bookmarks that just received stars/language
             // so the Bookmarks tab shows up-to-date data without re-fetching.
             enrichPersistedBookmarks(with: detailMap)
 
-        case .updateSearch, .fetchFailed:
+        case .fetchFailed:
             break
         }
     }
 
     // MARK: - Private side effects
-
+    
     private func fetchPage() async {
-        guard let url = state.nextPageURL else { return }
         do {
-            let (repos, nextURL) = try await service.fetchRepositories(url: url)
-            dispatch(.repositoriesLoaded(repos, nextURL: nextURL))
+            let result = try await (state.nextPageURL == nil)
+                ? service.fetchRepositories()
+                : service.fetchNextRepositories(url: state.nextPageURL!)
+            dispatch(.repositoriesLoaded(result.repos, nextURL: result.nextURL))
         } catch {
             dispatch(.fetchFailed(error.localizedDescription))
         }
@@ -91,12 +99,16 @@ final class RepoListStore: ObservableObject {
     private func enrichPersistedBookmarks(with detailMap: [String: RepositoryDetail]) {
         var saved: [Repository] = (try? persistence.load(forKey: .bookmarkedRepositories)) ?? []
         guard !saved.isEmpty else { return }
+        
         var changed = false
         saved = saved.map { repo in
             guard let detail = detailMap[repo.fullName] else { return repo }
             changed = true
             return repo.merging(detail: detail)
         }
-        if changed { try? persistence.save(saved, forKey: .bookmarkedRepositories) }
+        
+        if changed {
+            try? persistence.save(saved, forKey: .bookmarkedRepositories)
+        }
     }
 }

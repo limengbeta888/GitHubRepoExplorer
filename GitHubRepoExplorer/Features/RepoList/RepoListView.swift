@@ -25,12 +25,7 @@ struct RepoListView: View {
             }
         }
         .navigationTitle("GitHub Repos")
-        .navigationBarTitleDisplayMode(.inline)
-        .searchable(
-            text: Binding(get: { state.searchText },
-                          set: { store.dispatch(.updateSearch($0)) }),
-            prompt: "Search repos, owners…"
-        )
+        .navigationBarTitleDisplayMode(.automatic)
         .toolbar { toolbarContent }
         .task { store.dispatch(.loadInitial) }
         .refreshable { store.dispatch(.loadInitial) }
@@ -40,8 +35,11 @@ struct RepoListView: View {
 
     private var loadingView: some View {
         VStack(spacing: 16) {
-            ProgressView().scaleEffect(1.4)
-            Text("Loading repositories…").foregroundStyle(.secondary)
+            ProgressView()
+                .scaleEffect(1.4)
+            
+            Text("Loading repositories…")
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -54,8 +52,14 @@ struct RepoListView: View {
         } description: {
             Text(message)
         } actions: {
-            Button("Retry") { store.dispatch(.loadInitial) }
-                .buttonStyle(.borderedProminent)
+            Button {
+                store.dispatch(.loadInitial)
+            } label: {
+                Text("Retry")
+                    .font(.headline)
+                    .padding(4)
+            }
+            .buttonStyle(.borderedProminent)
         }
     }
 
@@ -67,8 +71,10 @@ struct RepoListView: View {
             if case .error(let msg) = state.phase {
                 Section {
                     HStack(spacing: 10) {
-                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                        Text(msg).font(.footnote)
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(msg)
+                            .font(.footnote)
                     }
                 }
             }
@@ -77,17 +83,21 @@ struct RepoListView: View {
             if state.phase == .fetchingDetails {
                 Section {
                     HStack(spacing: 8) {
-                        ProgressView().scaleEffect(0.8)
-                        Text("Fetching extra details…").font(.footnote).foregroundStyle(.secondary)
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("Fetching extra details…")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
 
             ForEach(state.groupedRepositories, id: \.key) { group in
-                Section(header: groupHeader(group.key, count: group.repos.count)) {
+                Section(header: GroupHeader(group: group.key, count: group.repos.count)) {
                     ForEach(group.repos) { repo in
                         NavigationLink(destination: RepoDetailView(store: RepoDetailStore(repo: repo))) {
-                            RepoRowView(repo: repo)
+                            RepoRowView(repo: repo,
+                                        isBookmarked: bookmarkStore.state.isBookmarked(repo))
                         }
                         .swipeActions(edge: .trailing) {
                             bookmarkSwipeButton(for: repo)
@@ -108,7 +118,8 @@ struct RepoListView: View {
             } else if !state.hasMorePages, !state.repositories.isEmpty {
                 Section {
                     Text("All repositories loaded")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)
                 }
@@ -141,18 +152,6 @@ struct RepoListView: View {
 
     // MARK: - Subviews
 
-    private func groupHeader(_ key: String, count: Int) -> some View {
-        HStack {
-            Text(key).font(.headline)
-            Spacer()
-            Text("\(count)")
-                .font(.caption).padding(.horizontal, 8).padding(.vertical, 2)
-                .background(Color.accentColor.opacity(0.15))
-                .foregroundStyle(Color.accentColor)
-                .clipShape(Capsule())
-        }
-    }
-
     @ViewBuilder
     private func bookmarkSwipeButton(for repo: Repository) -> some View {
         let isBookmarked = bookmarkStore.state.isBookmarked(repo)
@@ -170,49 +169,8 @@ struct RepoListView: View {
     }
 }
 
-// MARK: - RepoRowView
-
-struct RepoRowView: View {
-
-    let repo: Repository
-    @StateObject private var bookmarkStore = BookmarkListStore.shared
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            AvatarView(urlString: repo.owner.avatarUrl, size: 40)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(repo.name).font(.headline).lineLimit(1)
-                    if bookmarkStore.state.isBookmarked(repo) {
-                        Image(systemName: "bookmark.fill")
-                            .font(.caption).foregroundStyle(.tint)
-                    }
-                }
-                Text(repo.owner.login).font(.caption).foregroundStyle(.secondary)
-                if let desc = repo.description, !desc.isEmpty {
-                    Text(desc).font(.caption).foregroundStyle(.secondary).lineLimit(2)
-                }
-                HStack(spacing: 12) {
-                    if let lang = repo.language {
-                        Label(lang, systemImage: "chevron.left.forwardslash.chevron.right")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    }
-                    if let stars = repo.stargazersCount {
-                        Label("\(stars)", systemImage: "star")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    }
-                    if repo.fork {
-                        Label("Fork", systemImage: "arrow.branch")
-                            .font(.caption2).foregroundStyle(.orange)
-                    }
-                }
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
 // MARK: - Preview
+
 #Preview("Loaded") {
     let store = RepoListStore(service: MockGitHubService())
     store.state.repositories = Repository.allMocks

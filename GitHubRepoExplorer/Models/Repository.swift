@@ -25,7 +25,12 @@ struct Repository: Codable, Identifiable, Hashable {
     let updatedAt: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, description, fork, owner, language
+        case id
+        case name
+        case description
+        case fork
+        case owner
+        case language
         case fullName        = "full_name"
         case htmlUrl         = "html_url"
         case stargazersCount = "stargazers_count"
@@ -36,9 +41,13 @@ struct Repository: Codable, Identifiable, Hashable {
 
     func merging(detail: RepositoryDetail) -> Repository {
         Repository(
-            id: id, name: name, fullName: fullName,
-            description: description, fork: fork,
-            htmlUrl: htmlUrl, owner: owner,
+            id: id,
+            name: name,
+            fullName: fullName,
+            description: description,
+            fork: fork,
+            htmlUrl: htmlUrl,
+            owner: owner,
             stargazersCount: detail.stargazersCount,
             language: detail.language,
             forksCount: detail.forksCount,
@@ -51,9 +60,17 @@ struct Repository: Codable, Identifiable, Hashable {
 // MARK: - Grouping helpers
 
 extension Repository {
-    var ownerTypeName: String  { owner.type ?? "Unknown" }
-    var forkStatusName: String { fork ? "Forked" : "Original" }
-    var languageGroup: String  { language?.isEmpty == false ? language! : "Unknown" }
+    var ownerTypeName: String  {
+        owner.type ?? "Unknown"
+    }
+    
+    var forkStatusName: String {
+        fork ? "Forked" : "Original"
+    }
+    
+    var languageGroup: String  {
+        language?.isEmpty == false ? language! : "Unknown"
+    }
 
     var stargazerBand: String {
         guard let stars = stargazersCount else { return "Unknown" }
@@ -61,14 +78,14 @@ extension Repository {
         switch stars {
         case 0:          
             return "0 ★"
-        case 1..<10:     
+        case 1 ..< 10:
             return "1–9 ★"
-        case 10..<100:   
+        case 10 ..< 100:
             return "10–99 ★"
-        case 100..<1000: 
+        case 100 ..< 1000:
             return "100–999 ★"
         default:         
-            return "1 000+ ★"
+            return "1000+ ★"
         }
     }
 
@@ -78,11 +95,11 @@ extension Repository {
         switch stars {
         case 0:
             return 0
-        case 1..<10:
+        case 1 ..< 10:
             return 1
-        case 10..<100:
+        case 10 ..< 100:
             return 2
-        case 100..<1000:
+        case 100 ..< 1000:
             return 3
         default:
             return 4

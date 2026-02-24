@@ -8,7 +8,6 @@
 import Foundation
 
 struct RepoDetailState: Equatable {
-
     var repository: Repository
     var isBookmarked: Bool = false
     var phase: Phase = .idle
@@ -22,6 +21,7 @@ struct RepoDetailState: Equatable {
 
     init(repository: Repository) {
         self.repository = repository
+        
         // Skip fetching if detail fields already present (enriched by list)
         self.phase = repository.stargazersCount != nil ? .loaded : .idle
     }

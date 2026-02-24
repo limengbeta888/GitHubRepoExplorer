@@ -12,37 +12,20 @@ enum PublicReposEndpoint: Endpoint {
     /// Initial or subsequent page of the public repository list.
     /// - `initial`: hits `/repositories` on the configured base URL.
     /// - `nextPage(URL)`: follows an absolute cursor URL from the `Link` header.
-    case repositoryList(GitHubAPIConfig)
-    case repositoryListNextPage(URL)        // absolute cursor — bypasses base URL
+    case repositories(GitHubAPIConfig)
+    case nextRepositories(URL)        // absolute cursor — bypasses base URL
     /// Detail for a single repository, e.g. `/repos/mojombo/god`.
     case repositoryDetail(fullName: String, config: GitHubAPIConfig)
-    
-    // MARK: - Factory
-    
-    /// Resolves the correct case from a URL that is either the initial list URL
-    /// or a cursor returned by a previous response's Link header.
-    ///
-    /// This keeps the routing decision inside `PublicReposEndpoint` — callers simply
-    /// pass whatever URL they have and get back the right endpoint.
-    ///
-    ///     let endpoint = RepoEndpoint.repositoryList(from: url, config: config)
-    ///
-    static func repositoryList(from url: URL, config: GitHubAPIConfig) -> PublicReposEndpoint {
-        let initialURL = "\(config.baseURL)/repositories"
-        return url.absoluteString == initialURL
-            ? .repositoryList(config)
-            : .repositoryListNextPage(url)
-    }
 
     // MARK: Endpoint
 
     var url: URL {
         get throws {
             switch self {
-            case .repositoryList(let config):
+            case .repositories(let config):
                 return try PathEndpointURL(baseURL: config.baseURL, path: "/repositories").resolve()
 
-            case .repositoryListNextPage(let absoluteURL):
+            case .nextRepositories(let absoluteURL):
                 // Cursor URLs from GitHub's Link header are already fully qualified —
                 // use them as-is, no base URL composition needed.
                 return absoluteURL

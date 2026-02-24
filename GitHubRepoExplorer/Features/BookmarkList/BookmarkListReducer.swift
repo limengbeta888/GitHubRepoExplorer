@@ -13,10 +13,9 @@ enum BookmarkListReducer {
         var next = state
 
         switch intent {
-
         case .loadBookmarks(let repos):
             next.bookmarkedRepos = repos
-            next.bookmarkedIDs   = Set(repos.map(\.id))
+            next.bookmarkedIDs = Set(repos.map(\.id))
 
         case .bookmark(let repo):
             guard !next.bookmarkedIDs.contains(repo.id) else { return state }
@@ -26,9 +25,6 @@ enum BookmarkListReducer {
         case .removeBookmark(let repo):
             next.bookmarkedRepos.removeAll { $0.id == repo.id }
             next.bookmarkedIDs.remove(repo.id)
-
-        case .updateSearch(let text):
-            next.searchText = text
 
         case .updateEnriched(let enriched):
             let map = Dictionary(uniqueKeysWithValues: enriched.map { ($0.id, $0) })

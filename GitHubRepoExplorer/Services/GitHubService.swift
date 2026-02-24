@@ -12,7 +12,8 @@ import Foundation
 // MARK: - Protocol
 
 protocol GitHubServiceProtocol {
-    func fetchRepositories(url: URL) async throws -> (repos: [Repository], nextURL: URL?)
+    func fetchRepositories() async throws -> (repos: [Repository], nextURL: URL?)
+    func fetchNextRepositories(url: URL) async throws -> (repos: [Repository], nextURL: URL?)
     func fetchDetail(for repo: Repository) async throws -> RepositoryDetail
     func fetchDetails(for repos: [Repository]) async -> [String: RepositoryDetail]
 }
@@ -27,7 +28,7 @@ actor GitHubService: GitHubServiceProtocol {
     private let config: GitHubAPIConfig
     private var detailCache: [String: RepositoryDetail] = [:]
 
-    init(
+    private init(
         client: NetworkClientProtocol = NetworkClient(),
         config: GitHubAPIConfig = GitHubAPIConfig()
     ) {
@@ -37,9 +38,17 @@ actor GitHubService: GitHubServiceProtocol {
 
     // MARK: List
 
-    func fetchRepositories(url: URL) async throws -> (repos: [Repository], nextURL: URL?) {
-        let endpoint = PublicReposEndpoint.repositoryList(from: url, config: config)
-        let response: NetworkResponse<[Repository]> = try await client.requestWithResponse(endpoint: endpoint)
+    func fetchRepositories() async throws -> (repos: [Repository], nextURL: URL?) {
+        let response: NetworkResponse<[Repository]> = try await client.requestWithResponse(
+            endpoint: PublicReposEndpoint.repositories(config)
+        )
+        return (response.body, response.nextPageURL)
+    }
+
+    func fetchNextRepositories(url: URL) async throws -> (repos: [Repository], nextURL: URL?) {
+        let response: NetworkResponse<[Repository]> = try await client.requestWithResponse(
+            endpoint: PublicReposEndpoint.nextRepositories(url)
+        )
         return (response.body, response.nextPageURL)
     }
 
