@@ -7,6 +7,14 @@
 
 import Foundation
 
+enum HTTPMethod: String {
+    case get = "GET"
+    case post = "POST"
+    case put = "PUT"
+    case delete = "DELETE"
+    case patch = "PATCH"
+}
+
 protocol Endpoint {
     /// The resolved URL for this endpoint.
     /// Conformers can derive this from a base URL + path,

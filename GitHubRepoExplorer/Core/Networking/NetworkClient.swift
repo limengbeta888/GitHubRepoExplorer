@@ -7,14 +7,6 @@
 
 import Foundation
 
-enum HTTPMethod: String {
-    case get = "GET"
-    case post = "POST"
-    case put = "PUT"
-    case delete = "DELETE"
-    case patch = "PATCH"
-}
-
 protocol NetworkClientProtocol {
     /// Performs a request and returns only the decoded body.
     /// Use when response headers are not needed.

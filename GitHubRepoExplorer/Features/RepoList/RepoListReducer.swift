@@ -7,30 +7,44 @@
 
 import Foundation
 
-struct RepoListReducer {
-    func reduce(state: RepoListState, intent: RepoListIntent) -> RepoListState {
-        var newState = state
+enum RepoListReducer {
+
+    static func reduce(_ state: RepoListState, intent: RepoListIntent) -> RepoListState {
+        var next = state
 
         switch intent {
-        case .onAppear:
-            guard state.repos.isEmpty else { return state }
-            newState.isLoading = true
-            newState.errorMessage = nil
+
+        case .loadInitial:
+            next.repositories = []
+            next.nextPageURL = URL(string: "https://api.github.com/repositories")
+            next.phase = .loadingInitial
 
         case .loadMore:
-            guard state.hasMore,
-                  !state.isLoading else {
-                return state
-            }
-            
-            newState.isLoading = true
-            newState.errorMessage = nil
+            guard state.hasMorePages, !state.isFetching else { return state }
+            next.phase = .loadingMore
 
-        case .retry:
-            newState.isLoading = true
-            newState.errorMessage = nil
+        case .changeGrouping(let option):
+            next.groupingOption = option
+
+        case .updateSearch(let text):
+            next.searchText = text
+
+        case .repositoriesLoaded(let repos, let nextURL):
+            next.repositories.append(contentsOf: repos)
+            next.nextPageURL = nextURL
+            next.phase = .loaded
+
+        case .detailsLoaded(let detailMap):
+            next.repositories = state.repositories.map { repo in
+                guard let detail = detailMap[repo.fullName] else { return repo }
+                return repo.merging(detail: detail)
+            }
+            next.phase = .loaded
+
+        case .fetchFailed(let message):
+            next.phase = .error(message)
         }
 
-        return newState
+        return next
     }
 }

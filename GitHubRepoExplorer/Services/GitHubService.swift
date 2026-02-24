@@ -9,58 +9,66 @@
 
 import Foundation
 
+// MARK: - Protocol
+
 protocol GitHubServiceProtocol {
     func fetchRepositories(url: URL) async throws -> (repos: [Repository], nextURL: URL?)
+    func fetchDetail(for repo: Repository) async throws -> RepositoryDetail
+    func fetchDetails(for repos: [Repository]) async -> [String: RepositoryDetail]
 }
 
-final class GitHubService: GitHubServiceProtocol {
-    private let networkClient: NetworkClientProtocol
-    private let apiConfig: GitHubAPIConfig
-    
-    init(networkClient: NetworkClientProtocol, apiConfig: GitHubAPIConfig) {
-        self.networkClient = networkClient
-        self.apiConfig = apiConfig
+// MARK: - Implementation
+
+actor GitHubService: GitHubServiceProtocol {
+
+    static let shared = GitHubService()
+
+    private let client: NetworkClientProtocol
+    private let config: GitHubAPIConfig
+    private var detailCache: [String: RepositoryDetail] = [:]
+
+    init(
+        client: NetworkClientProtocol = NetworkClient(),
+        config: GitHubAPIConfig = GitHubAPIConfig()
+    ) {
+        self.client = client
+        self.config = config
     }
 
-    // MARK: Fetch Repository List
+    // MARK: List
 
     func fetchRepositories(url: URL) async throws -> (repos: [Repository], nextURL: URL?) {
-        // Choose the right endpoint case based on whether this is the first page
-        let endpoint = PublicReposEndpoint.repositoryList(from: url, config: apiConfig)
-        let response: NetworkResponse<[Repository]> = try await networkClient.requestWithResponse(
-            endpoint: endpoint
-        )
+        let endpoint = PublicReposEndpoint.repositoryList(from: url, config: config)
+        let response: NetworkResponse<[Repository]> = try await client.requestWithResponse(endpoint: endpoint)
         return (response.body, response.nextPageURL)
     }
-    
-//    // MARK: Fetch Repository Detail
-//
-//    func fetchDetail(for repo: Repository) async throws -> RepositoryDetail {
-//        if let cached = detailCache[repo.fullName] { return cached }
-//
-//        let detail: RepositoryDetail = try await client.request(
-//            endpoint: RepoEndpoint.repositoryDetail(fullName: repo.fullName, config: config)
-//        )
-//
-//        detailCache[repo.fullName] = detail
-//        return detail
-//    }
-    
-//    // MARK: Batch Detail Fetch
-//
-//    func fetchDetails(for repos: [Repository]) async -> [String: RepositoryDetail] {
-//        await withTaskGroup(of: (String, RepositoryDetail)?.self) { group in
-//            for repo in repos {
-//                group.addTask {
-//                    guard let detail = try? await self.fetchDetail(for: repo) else { return nil }
-//                    return (repo.fullName, detail)
-//                }
-//            }
-//            var results: [String: RepositoryDetail] = [:]
-//            for await pair in group {
-//                if let (key, value) = pair { results[key] = value }
-//            }
-//            return results
-//        }
-//    }
+
+    // MARK: Detail (with actor-isolated cache)
+
+    func fetchDetail(for repo: Repository) async throws -> RepositoryDetail {
+        if let cached = detailCache[repo.fullName] { return cached }
+        let detail: RepositoryDetail = try await client.request(
+            endpoint: PublicReposEndpoint.repositoryDetail(fullName: repo.fullName, config: config)
+        )
+        detailCache[repo.fullName] = detail
+        return detail
+    }
+
+    // MARK: Batch detail — concurrent, individual failures skipped gracefully
+
+    func fetchDetails(for repos: [Repository]) async -> [String: RepositoryDetail] {
+        await withTaskGroup(of: (String, RepositoryDetail)?.self) { group in
+            for repo in repos {
+                group.addTask {
+                    guard let detail = try? await self.fetchDetail(for: repo) else { return nil }
+                    return (repo.fullName, detail)
+                }
+            }
+            var results: [String: RepositoryDetail] = [:]
+            for await pair in group {
+                if let (key, value) = pair { results[key] = value }
+            }
+            return results
+        }
+    }
 }

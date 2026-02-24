@@ -14,7 +14,9 @@ enum PublicReposEndpoint: Endpoint {
     /// - `nextPage(URL)`: follows an absolute cursor URL from the `Link` header.
     case repositoryList(GitHubAPIConfig)
     case repositoryListNextPage(URL)        // absolute cursor — bypasses base URL
-
+    /// Detail for a single repository, e.g. `/repos/mojombo/god`.
+    case repositoryDetail(fullName: String, config: GitHubAPIConfig)
+    
     // MARK: - Factory
     
     /// Resolves the correct case from a URL that is either the initial list URL
@@ -31,9 +33,6 @@ enum PublicReposEndpoint: Endpoint {
             ? .repositoryList(config)
             : .repositoryListNextPage(url)
     }
-    
-    //    /// Detail for a single repository, e.g. `/repos/mojombo/god`.
-    //    case repositoryDetail(fullName: String, config: GitHubAPIConfig)
 
     // MARK: Endpoint
 
@@ -48,8 +47,8 @@ enum PublicReposEndpoint: Endpoint {
                 // use them as-is, no base URL composition needed.
                 return absoluteURL
 
-//            case .repositoryDetail(let fullName, let config):
-//                return try PathEndpointURL(baseURL: config.baseURL, path: "/repos/\(fullName)").resolve()
+            case .repositoryDetail(let fullName, let config):
+                return try PathEndpointURL(baseURL: config.baseURL, path: "/repos/\(fullName)").resolve()
             }
         }
     }

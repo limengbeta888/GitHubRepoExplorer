@@ -5,6 +5,9 @@
 //  Created by Meng Li on 23/02/2026.
 //
 
+import Foundation
+
+/// Fields returned by GET /repos/{owner}/{repo} that are absent from the list endpoint.
 struct RepositoryDetail: Codable {
     let stargazersCount: Int?
     let language: String?

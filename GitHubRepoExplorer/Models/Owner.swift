@@ -5,6 +5,8 @@
 //  Created by Meng Li on 23/02/2026.
 //
 
+import Foundation
+
 struct Owner: Codable, Hashable {
     let login: String
     let avatarUrl: String?

@@ -5,90 +5,98 @@
 //  Created by Meng Li on 23/02/2026.
 //
 
+import Foundation
 import Combine
-import SwiftUI
 
+@MainActor
 final class RepoListStore: ObservableObject {
-    @Published private(set) var state = RepoListState()
-    
-    private let reducer = RepoListReducer()
-    private let recipeService: RecipeServiceProtocol
 
-    private var isPreview: Bool = false
-    private let limit = 20
-    private var skip = 0
-    private var cancellables = Set<AnyCancellable>()
-    
-    init(container: Container = AppDelegate.container) {
-        recipeService = container.resolve(RecipeServiceProtocol.self)!
-        
-        // Debounce search text
-        $searchText
-            .removeDuplicates()
-            .debounce(for: .milliseconds(400), scheduler: DispatchQueue.main)
-            .scan(("", "")) { previous, newValue in
-                (previous.1, newValue)
-            }
-            .sink { [weak self] oldValue, newValue in
-                guard let self else { return }
-                if !oldValue.isEmpty, newValue.isEmpty {
-                    self.send(.cancelSearch)
-                } else if !newValue.isEmpty {
-                    self.send(.search(newValue))
-                }
-            }
-            .store(in: &cancellables)
+    @Published var state: RepoListState = .init()
+
+    private let service: GitHubServiceProtocol
+    private let persistence: PersistenceServiceProtocol
+
+    private var fetchTask: Task<Void, Never>?
+    private var detailTask: Task<Void, Never>?
+
+    // nil defaults resolved inside init — avoids referencing actor-isolated
+    // state in a nonisolated default argument expression.
+    init(
+        service: GitHubServiceProtocol? = nil,
+        persistence: PersistenceServiceProtocol? = nil
+    ) {
+        self.service     = service     ?? GitHubService.shared
+        self.persistence = persistence ?? UserDefaultsPersistenceService()
     }
 
-    // Only for Preview
-    convenience init(state: RecipeListState) {
-        self.init()
-        self.state = state
-        self.isPreview = true
-    }
-    
-    // MARK: - Intent
-    func send(_ intent: RecipeListIntent) {
-        guard !(isPreview) else { return }
+    // MARK: - Dispatch
 
-        let newState = reducer.reduce(state: state, intent: intent)
-        guard newState != state else { return }
-
-        state = newState
+    func dispatch(_ intent: RepoListIntent) {
+        state = RepoListReducer.reduce(state, intent: intent)
 
         switch intent {
-        case .onAppear, .loadMore, .retry:
-            if state.isLoading, !state.isSearching {
-                loadRecipes()
-            }
-            
-        case .search(let keyword):
-            if state.isLoading, state.isSearching {
-                searchRecipes(keyword)
-            }
 
-        case .cancelSearch:
+        case .loadInitial:
+            fetchTask?.cancel()
+            fetchTask = Task { await fetchPage() }
+
+        case .loadMore:
+            guard state.phase == .loadingMore else { return }
+            fetchTask?.cancel()
+            fetchTask = Task { await fetchPage() }
+
+        case .changeGrouping(let option):
+            if option.requiresDetail { triggerDetailFetchIfNeeded() }
+
+        case .repositoriesLoaded:
+            if state.groupingOption.requiresDetail { triggerDetailFetchIfNeeded() }
+
+        case .detailsLoaded(let detailMap):
+            // Enrich any persisted bookmarks that just received stars/language
+            // so the Bookmarks tab shows up-to-date data without re-fetching.
+            enrichPersistedBookmarks(with: detailMap)
+
+        case .updateSearch, .fetchFailed:
             break
         }
     }
 
-    // MARK: - Side Effect
-    private func loadRecipes() {
-        Task {
-            do {
-                let response = try await recipeService.fetchRecipes(limit: limit, skip: skip)
+    // MARK: - Private side effects
 
-                skip += response.recipes.count
-
-                state.isLoading = false
-                state.loadedRecipes.append(contentsOf: response.recipes)
-                state.hasMore = !response.recipes.isEmpty
-                state.recipes = state.loadedRecipes
-
-            } catch {
-                state.isLoading = false
-                state.errorMessage = error.localizedDescription
-            }
+    private func fetchPage() async {
+        guard let url = state.nextPageURL else { return }
+        do {
+            let (repos, nextURL) = try await service.fetchRepositories(url: url)
+            dispatch(.repositoriesLoaded(repos, nextURL: nextURL))
+        } catch {
+            dispatch(.fetchFailed(error.localizedDescription))
         }
+    }
+
+    private func triggerDetailFetchIfNeeded() {
+        let missing = state.repositories.filter { $0.stargazersCount == nil }
+        guard !missing.isEmpty else { return }
+
+        var next = state
+        next.phase = .fetchingDetails
+        state = next
+
+        detailTask?.cancel()
+        detailTask = Task {
+            let detailMap = await service.fetchDetails(for: missing)
+            dispatch(.detailsLoaded(detailMap))
+        }
+    }
+
+    private func enrichPersistedBookmarks(with detailMap: [String: RepositoryDetail]) {
+        var saved: [Repository] = (try? persistence.load(forKey: .bookmarkedRepositories)) ?? []
+        guard !saved.isEmpty else { return }
+        var changed = false
+        saved = saved.map { repo in
+            guard let detail = detailMap[repo.fullName] else { return repo }
+            changed = true
+            return repo.merging(detail: detail)
+        }
+        if changed { try? persistence.save(saved, forKey: .bookmarkedRepositories) }
     }
 }

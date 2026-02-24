@@ -7,8 +7,16 @@
 
 import Foundation
 
-enum RepoListIntent: Equatable {
-    case onAppear
+enum RepoListIntent {
+
+    // User actions
+    case loadInitial
     case loadMore
-    case retry
+    case changeGrouping(GroupingOption)
+    case updateSearch(String)
+
+    // System events dispatched by Store after async work completes
+    case repositoriesLoaded([Repository], nextURL: URL?)
+    case detailsLoaded([String: RepositoryDetail])
+    case fetchFailed(String)
 }
