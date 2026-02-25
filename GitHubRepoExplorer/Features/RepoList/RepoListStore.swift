@@ -10,7 +10,7 @@ import Combine
 
 @MainActor
 final class RepoListStore: ObservableObject {
-    @Published var state = RepoListState()
+    @Published private(set) var state = RepoListState()
 
     private let service: GitHubServiceProtocol
     private let persistence: PersistenceServiceProtocol
@@ -18,6 +18,8 @@ final class RepoListStore: ObservableObject {
     private var fetchTask: Task<Void, Never>?
     private var detailTask: Task<Void, Never>?
 
+    private var cancellables = Set<AnyCancellable>()
+    
     // nil defaults resolved inside init — avoids referencing actor-isolated
     // state in a nonisolated default argument expression.
     init(
@@ -26,6 +28,8 @@ final class RepoListStore: ObservableObject {
     ) {
         self.service = service ?? GitHubService.shared
         self.persistence = persistence ?? PersistenceService.shared
+        
+        subscribeToEvents()
     }
 
     // MARK: - Dispatch
@@ -76,6 +80,24 @@ final class RepoListStore: ObservableObject {
         }
     }
 
+    // MARK: - Subscribers
+    
+    private func subscribeToEvents() {
+//        AppEventBus.shared.events
+//            .sink { [weak self] event in
+//                guard let self else { return }
+//                
+//                switch event {
+//                case .repositoryEnriched(let repo):
+//                    dispatch(.detailsLoaded([repo.fullName: repo]))
+//                    
+//                default:
+//                    break
+//                }
+//            }
+//            .store(in: &cancellables)
+    }
+    
     // MARK: - Private side effects
     
     private func fetchPage() async {

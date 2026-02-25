@@ -29,7 +29,7 @@ enum RepoListReducer {
             next.groupingOption = option
 
         case .toggleGroup(let key):
-            if next.collapsedGroups.contains(key) {
+            if state.collapsedGroups.contains(key) {
                 next.collapsedGroups.remove(key)
             } else {
                 next.collapsedGroups.insert(key)

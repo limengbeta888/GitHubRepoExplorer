@@ -33,6 +33,10 @@ struct RepoListState: Equatable {
         phase == .loadingInitial || phase == .loadingMore
     }
 
+    var hasVisibleRows: Bool {
+        groupedRepositories.contains { !collapsedGroups.contains($0.key) }
+    }
+    
     var groupedRepositories: [(key: String, repos: [Repository])] {
         let dict = Dictionary(grouping: repositories) { repo -> String in
             switch groupingOption {

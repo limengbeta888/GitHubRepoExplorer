@@ -32,12 +32,12 @@ struct RepoListView: View {
             toolbarContent
         }
         .task {
+            guard state.phase == .idle else { return }
             store.dispatch(.loadInitial)
         }
         .refreshable {
-            if state.repositories.isEmpty {
-                store.dispatch(.loadInitial)
-            }
+            guard state.repositories.isEmpty else { return }
+            store.dispatch(.loadInitial)
         }
     }
 
@@ -185,7 +185,7 @@ struct RepoListView: View {
                 }
                 .listRowBackground(Color.clear)
 
-            case .loaded where state.hasMorePages:
+            case .loaded where state.hasMorePages && state.hasVisibleRows:
                 // Invisible sentinel — triggers load when it scrolls into view
                 Color.clear
                     .frame(height: 1)
