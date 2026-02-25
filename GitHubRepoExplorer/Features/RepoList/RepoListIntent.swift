@@ -21,5 +21,6 @@ enum RepoListIntent {
     case repositoriesLoaded([Repository], nextURL: URL?)
     case fetchDetails
     case detailsLoaded([String: RepositoryDetail])
+    case repositoryEnriched(Repository)
     case fetchFailed(String)
 }

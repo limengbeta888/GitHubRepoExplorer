@@ -16,7 +16,7 @@ class GitHubAPIConfig: APIConfigProtocol {
     /// Headers required by every GitHub API request.
     static let defaultHeaders: [String: String] = [
         "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28"
+        "X-GitHub-Api-Version": "2022-11-28",
     ]
     
     init() {

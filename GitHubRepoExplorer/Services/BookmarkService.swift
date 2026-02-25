@@ -44,9 +44,16 @@ final class BookmarkService: BookmarkServiceProtocol {
     private(set) var cachedBookmarkedIDs: Set<Int> = []
 
     private let persistence: PersistenceServiceProtocol
-
-    init(persistence: PersistenceServiceProtocol? = nil) {
+    private let repositoryUpdateService: RepositoryUpdateServiceProtocol
+    private var cancellables = Set<AnyCancellable>()
+    
+    init(persistence: PersistenceServiceProtocol? = nil,
+         repositoryUpdateService: RepositoryUpdateServiceProtocol? = nil) {
+        
         self.persistence = persistence ?? PersistenceService.shared
+        self.repositoryUpdateService = repositoryUpdateService ?? RepositoryUpdateService.shared
+        
+        subscribeToService()
         
         loadAllBookmarks()
     }
@@ -102,5 +109,18 @@ final class BookmarkService: BookmarkServiceProtocol {
         cachedBookmarkedIDs.removeAll()
         
         allBookmarksDeletedSubject.send()
+    }
+    
+    // MARK: - Private
+    
+    private func subscribeToService() {
+        repositoryUpdateService.repositoryEnrichedSubject
+             .receive(on: DispatchQueue.main)
+             .sink { [weak self] repo in
+                 guard let self else { return }
+                 // Enrich bookmark if this repo is saved
+                 self.updateBookmark(repo)
+             }
+             .store(in: &cancellables)
     }
 }

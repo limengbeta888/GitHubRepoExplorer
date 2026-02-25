@@ -9,8 +9,15 @@ import SwiftUI
 
 struct RepoRowView: View {
     let repo: Repository
+    let detailVisible: Bool
     @Binding var isBookmarked: Bool
 
+    init(repo: Repository, isBookmarked: Binding<Bool>, detailVisible: Bool = true) {
+        self.repo = repo
+        self._isBookmarked = isBookmarked
+        self.detailVisible = detailVisible
+    }
+    
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             AvatarView(urlString: repo.owner.avatarUrl, size: 40)
@@ -39,18 +46,20 @@ struct RepoRowView: View {
                 }
                 
                 HStack(spacing: 12) {
-                    if let lang = repo.language {
-                        Label(lang, systemImage: "chevron.left.forwardslash.chevron.right")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                    if detailVisible {
+                        if let lang = repo.language {
+                            Label(lang, systemImage: "chevron.left.forwardslash.chevron.right")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        if let stars = repo.stargazersCount {
+                            Label("\(stars)", systemImage: "star")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    
-                    if let stars = repo.stargazersCount {
-                        Label("\(stars)", systemImage: "star")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    
+
                     if repo.fork {
                         Label("Fork", systemImage: "arrow.branch")
                             .font(.caption2)

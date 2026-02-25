@@ -15,7 +15,8 @@ final class RepoListStore: ObservableObject {
 
     private let service: GitHubServiceProtocol
     private let bookmarkService: BookmarkServiceProtocol
-
+    private let repositoryUpdateService: RepositoryUpdateServiceProtocol
+    
     private var fetchTask: Task<Void, Never>?
     private var detailTask: Task<Void, Never>?
 
@@ -25,10 +26,12 @@ final class RepoListStore: ObservableObject {
     // state in a nonisolated default argument expression.
     init(
         service: GitHubServiceProtocol? = nil,
-        bookmarkService: BookmarkServiceProtocol? = nil
+        bookmarkService: BookmarkServiceProtocol? = nil,
+        repositoryUpdateService: RepositoryUpdateServiceProtocol? = nil
     ) {
         self.service = service ?? GitHubService.shared
         self.bookmarkService = bookmarkService ?? BookmarkService.shared
+        self.repositoryUpdateService = repositoryUpdateService ?? RepositoryUpdateService.shared
         
         subscribeToService()
     }
@@ -83,7 +86,7 @@ final class RepoListStore: ObservableObject {
                 bookmarkService.removeBookmark(repo)
             }
         
-        case .fetchFailed, .toggleGroup, .syncBookmark:
+        case .fetchFailed, .toggleGroup, .syncBookmark, .repositoryEnriched:
             break
         }
     }
@@ -114,24 +117,15 @@ final class RepoListStore: ObservableObject {
                 self.dispatch(.syncBookmark(self.bookmarkService.cachedBookmarkedIDs))
             }
             .store(in: &cancellables)
+        
+        repositoryUpdateService.repositoryEnrichedSubject
+             .receive(on: DispatchQueue.main)
+             .sink { [weak self] repo in
+                 guard let self else { return }
+                 self.dispatch(.repositoryEnriched(repo))
+             }
+             .store(in: &cancellables)
     }
-    
-//    private func subscribeToEvents() {
-//        AppEventBus.shared.events
-//            .sink { [weak self] event in
-//                guard let self else { return }
-//                
-//                switch event {
-//                case .bookmarkToggled(let repo, let isBookmarked):
-//                    // Sync bookmark changes from other screens (e.g. RepoDetailView)
-//                    dispatch(.toggleBookmark(repo, isBookmarked: isBookmarked))
-//                case .repositoryEnriched(let repo):
-////                    dispatch(.repositoryEnriched(repo))
-//                    break
-//                }
-//            }
-//            .store(in: &cancellables)
-//    }
     
     // MARK: - Private side effects
     

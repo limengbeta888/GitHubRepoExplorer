@@ -52,6 +52,12 @@ enum RepoListReducer {
             }
             next.phase = .loaded
 
+        case .repositoryEnriched(let repo):
+            guard let index = state.repositories.firstIndex(where: { $0.id == repo.id }) else {
+                return state
+            }
+            next.repositories[index] = repo
+            
         case .fetchFailed(let message):
             next.phase = .error(message)
         

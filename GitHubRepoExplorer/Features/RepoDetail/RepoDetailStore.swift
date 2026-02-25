@@ -12,8 +12,12 @@ import Combine
 final class RepoDetailStore: ObservableObject {
     @Published var state: RepoDetailState
 
+    private var detailTask: Task<Void, Never>?
+    
     private let service: GitHubServiceProtocol
     private let bookmarkService: BookmarkServiceProtocol
+    private let repositoryUpdateService: RepositoryUpdateServiceProtocol
+    
     private var cancellables = Set<AnyCancellable>()
     
     // nil defaults resolved inside init — avoids referencing actor-isolated
@@ -21,11 +25,13 @@ final class RepoDetailStore: ObservableObject {
     init(
         repo: Repository,
         service: GitHubServiceProtocol? = nil,
-        bookmarkService: BookmarkServiceProtocol? = nil
+        bookmarkService: BookmarkServiceProtocol? = nil,
+        repositoryUpdateService: RepositoryUpdateServiceProtocol? = nil
     ) {
         self.state = RepoDetailState(repository: repo)
         self.service = service ?? GitHubService.shared
         self.bookmarkService = bookmarkService ?? BookmarkService.shared
+        self.repositoryUpdateService = repositoryUpdateService ?? RepositoryUpdateService.shared
         
         subscribeToService(repo: repo)
         
@@ -43,10 +49,11 @@ final class RepoDetailStore: ObservableObject {
         case .loadDetail:
             guard state.phase == .loadingDetail else { return }
             
-            Task {
+            detailTask?.cancel()
+            detailTask = Task {
                 await fetchDetail()
             }
-
+            
         case .toggleBookmark:
             if state.isBookmarked {
                 bookmarkService.addBookmark(state.repository)
@@ -54,7 +61,10 @@ final class RepoDetailStore: ObservableObject {
                 bookmarkService.removeBookmark(state.repository)
             }
 
-        case .detailLoaded, .syncBookmark, .fetchFailed:
+        case .detailLoaded:
+            repositoryUpdateService.publishEnrichment(state.repository)
+            
+        case .syncBookmark, .fetchFailed:
             break
         }
     }
@@ -65,12 +75,6 @@ final class RepoDetailStore: ObservableObject {
         do {
             let detail = try await service.fetchDetail(for: state.repository)
             dispatch(.detailLoaded(detail))
-            
-            // Enrich bookmark if this repo is saved
-            if bookmarkService.cachedBookmarkedIDs.contains(state.repository.id) {
-                bookmarkService.updateBookmark(state.repository)
-            }
-            
         } catch {
             dispatch(.fetchFailed(error.localizedDescription))
         }

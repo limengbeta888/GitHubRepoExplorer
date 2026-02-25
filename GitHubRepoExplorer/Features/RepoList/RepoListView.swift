@@ -76,7 +76,7 @@ struct RepoListView: View {
 
     private var repoList: some View {
         List {
-            // Inline error banner when some repos are already loaded
+            // Inline error banner when some repos are already loaded (e.g. show api rate limit error)
             if case .error(let msg) = state.phase {
                 Section {
                     HStack(spacing: 10) {
