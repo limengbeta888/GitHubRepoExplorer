@@ -9,7 +9,7 @@ import SwiftUI
 
 struct RepoRowView: View {
     let repo: Repository
-    let isBookmarked: Bool
+    @Binding var isBookmarked: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -64,9 +64,9 @@ struct RepoRowView: View {
 }
 
 #Preview("Fork") {
-    return RepoRowView(repo: Repository.mockFork, isBookmarked: true)
+    return RepoRowView(repo: Repository.mockFork, isBookmarked: .constant(true))
 }
 
 #Preview("Original") {
-    return RepoRowView(repo: Repository.mockOriginal, isBookmarked: false)
+    return RepoRowView(repo: Repository.mockOriginal, isBookmarked: .constant(true))
 }

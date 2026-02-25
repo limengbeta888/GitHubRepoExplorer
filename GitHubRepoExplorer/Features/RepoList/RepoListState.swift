@@ -13,6 +13,7 @@ struct RepoListState: Equatable {
     var groupingOption: GroupingOption = .ownerType
     var phase: Phase = .idle
     var collapsedGroups: Set<String> = []
+    var bookmarkedIDs: Set<Int> = []
     
     // MARK: - Phase
 

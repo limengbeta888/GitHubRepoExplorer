@@ -28,7 +28,7 @@ enum RepoDetailReducer {
             next.repository = state.repository.merging(detail: detail)
             next.phase = .loaded
 
-        case .bookmarkStatusLoaded(let isBookmarked):
+        case .syncBookmark(let isBookmarked):
             next.isBookmarked = isBookmarked
 
         case .fetchFailed(let message):

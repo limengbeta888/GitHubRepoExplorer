@@ -15,6 +15,6 @@ enum RepoDetailIntent {
 
     // System events
     case detailLoaded(RepositoryDetail)
-    case bookmarkStatusLoaded(Bool)
+    case syncBookmark(isBookmarked: Bool)
     case fetchFailed(String)
 }

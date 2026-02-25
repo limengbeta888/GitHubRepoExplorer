@@ -9,7 +9,6 @@ import SwiftUI
 
 struct RepoListView: View {
     @ObservedObject var store: RepoListStore
-    @ObservedObject var bookmarkStore: BookmarkListStore
     
     private var state: RepoListState {
         store.state
@@ -108,7 +107,14 @@ struct RepoListView: View {
                         ForEach(group.repos) { repo in
                             NavigationLink(destination: RepoDetailView(store: RepoDetailStore(repo: repo))) {
                                 RepoRowView(repo: repo,
-                                            isBookmarked: bookmarkStore.state.isBookmarked(repo))
+                                            isBookmarked: Binding(
+                                                get: {
+                                                    state.bookmarkedIDs.contains(repo.id)
+                                                },
+                                                set: { isBookmarked in
+                                                    store.dispatch(.toggleBookmark(repo, isBookmarked: isBookmarked))
+                                                }
+                                            ))
                             }
                             .swipeActions(edge: .trailing) {
                                 bookmarkSwipeButton(for: repo)
@@ -209,9 +215,9 @@ struct RepoListView: View {
     
     @ViewBuilder
     private func bookmarkSwipeButton(for repo: Repository) -> some View {
-        let isBookmarked = bookmarkStore.state.isBookmarked(repo)
+        let isBookmarked = state.bookmarkedIDs.contains(repo.id)
         Button {
-            bookmarkStore.dispatch(isBookmarked ? .removeBookmark(repo) : .bookmark(repo))
+            store.dispatch(.toggleBookmark(repo, isBookmarked: !isBookmarked))
         } label: {
             Label(isBookmarked ? "Remove" : "Bookmark",
                   systemImage: isBookmarked ? "bookmark.slash" : "bookmark")
@@ -225,8 +231,7 @@ struct RepoListView: View {
 #Preview("Loaded") {
     let store = RepoListStore(service: MockGitHubService())
     return NavigationStack {
-        RepoListView(store: store,
-                     bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
+        RepoListView(store: store)
     }
 }
 
@@ -234,15 +239,13 @@ struct RepoListView: View {
     let gitHubService = MockGitHubService(behaviour: .success, sleepMillis: 10000)
     let store = RepoListStore(service: gitHubService)
     return NavigationStack {
-        RepoListView(store: store,
-                     bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
+        RepoListView(store: store)
     }
 }
 
 #Preview("Error") {
     let store = RepoListStore(service: MockGitHubService(behaviour: .networkError))
     return NavigationStack {
-        RepoListView(store: store,
-                     bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
+        RepoListView(store: store)
     }
 }

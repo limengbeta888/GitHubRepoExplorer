@@ -14,7 +14,7 @@ struct ContentView: View {
     var body: some View {
         TabView {
             NavigationStack {
-                RepoListView(store: repoListStore, bookmarkStore: bookmarkListStore)
+                RepoListView(store: repoListStore)
             }
             .tabItem { Label("Explore", systemImage: "globe") }
 

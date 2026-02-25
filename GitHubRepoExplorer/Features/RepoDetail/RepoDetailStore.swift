@@ -13,18 +13,25 @@ final class RepoDetailStore: ObservableObject {
     @Published var state: RepoDetailState
 
     private let service: GitHubServiceProtocol
-    private let persistence: PersistenceServiceProtocol
-
+    private let bookmarkService: BookmarkServiceProtocol
+    private var cancellables = Set<AnyCancellable>()
+    
     // nil defaults resolved inside init — avoids referencing actor-isolated
     // state in a nonisolated default argument expression.
     init(
         repo: Repository,
         service: GitHubServiceProtocol? = nil,
-        persistence: PersistenceServiceProtocol? = nil
+        bookmarkService: BookmarkServiceProtocol? = nil
     ) {
         self.state = RepoDetailState(repository: repo)
         self.service = service ?? GitHubService.shared
-        self.persistence = persistence ?? PersistenceService.shared
+        self.bookmarkService = bookmarkService ?? BookmarkService.shared
+        
+        subscribeToService(repo: repo)
+        
+        let isBookmarked = bookmarkService?.cachedBookmarkedIDs.contains(repo.id)
+            ?? BookmarkService.shared.cachedBookmarkedIDs.contains(repo.id)
+        dispatch(.syncBookmark(isBookmarked: isBookmarked))
     }
 
     // MARK: - Dispatch
@@ -35,17 +42,19 @@ final class RepoDetailStore: ObservableObject {
         switch intent {
         case .loadDetail:
             guard state.phase == .loadingDetail else { return }
+            
             Task {
                 await fetchDetail()
             }
-            
-            loadBookmarkStatus()
 
         case .toggleBookmark:
-            // State already flipped by reducer — now sync to persistence
-            persistBookmarkChange()
+            if state.isBookmarked {
+                bookmarkService.addBookmark(state.repository)
+            } else {
+                bookmarkService.removeBookmark(state.repository)
+            }
 
-        case .bookmarkStatusLoaded, .detailLoaded, .fetchFailed:
+        case .detailLoaded, .syncBookmark, .fetchFailed:
             break
         }
     }
@@ -56,21 +65,33 @@ final class RepoDetailStore: ObservableObject {
         do {
             let detail = try await service.fetchDetail(for: state.repository)
             dispatch(.detailLoaded(detail))
+            
+            // Enrich bookmark if this repo is saved
+            if bookmarkService.cachedBookmarkedIDs.contains(state.repository.id) {
+                bookmarkService.updateBookmark(state.repository)
+            }
+            
         } catch {
             dispatch(.fetchFailed(error.localizedDescription))
         }
     }
 
-    private func loadBookmarkStatus() {
-        let saved = (try? persistence.loadAllRepos()) ?? []
-        dispatch(.bookmarkStatusLoaded(saved.contains { $0.id == state.repository.id }))
-    }
+    /// Keeps bookmark icon in sync if toggled from another screen (e.g. RepoListView swipe)
+    private func subscribeToService(repo: Repository) {
+        bookmarkService.bookmarkAddedSubject
+            .filter { $0.id == repo.id }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.dispatch(.syncBookmark(isBookmarked: true))
+            }
+            .store(in: &cancellables)
 
-    private func persistBookmarkChange() {
-        if state.isBookmarked {
-            try? persistence.add(state.repository)
-        } else {
-            try? persistence.remove(state.repository)
-        }
+        bookmarkService.bookmarkRemovedSubject
+            .filter { $0.id == repo.id }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.dispatch(.syncBookmark(isBookmarked: false))
+            }
+            .store(in: &cancellables)
     }
 }

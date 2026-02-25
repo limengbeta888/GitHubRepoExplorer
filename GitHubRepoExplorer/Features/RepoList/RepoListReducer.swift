@@ -54,6 +54,16 @@ enum RepoListReducer {
 
         case .fetchFailed(let message):
             next.phase = .error(message)
+        
+        case .syncBookmark(let ids):
+            next.bookmarkedIDs = ids
+            
+        case .toggleBookmark(let repo, let isBookmarked):
+            if isBookmarked {
+                next.bookmarkedIDs.insert(repo.id)
+            } else {
+                next.bookmarkedIDs.remove(repo.id)
+            }
         }
 
         return next

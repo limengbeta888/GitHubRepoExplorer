@@ -7,13 +7,14 @@
 
 import Foundation
 import Combine
+import SwiftUI
 
 @MainActor
 final class RepoListStore: ObservableObject {
     @Published private(set) var state = RepoListState()
 
     private let service: GitHubServiceProtocol
-    private let persistence: PersistenceServiceProtocol
+    private let bookmarkService: BookmarkServiceProtocol
 
     private var fetchTask: Task<Void, Never>?
     private var detailTask: Task<Void, Never>?
@@ -24,12 +25,12 @@ final class RepoListStore: ObservableObject {
     // state in a nonisolated default argument expression.
     init(
         service: GitHubServiceProtocol? = nil,
-        persistence: PersistenceServiceProtocol? = nil
+        bookmarkService: BookmarkServiceProtocol? = nil
     ) {
         self.service = service ?? GitHubService.shared
-        self.persistence = persistence ?? PersistenceService.shared
+        self.bookmarkService = bookmarkService ?? BookmarkService.shared
         
-        subscribeToEvents()
+        subscribeToService()
     }
 
     // MARK: - Dispatch
@@ -74,29 +75,63 @@ final class RepoListStore: ObservableObject {
             // Enrich any persisted bookmarks that just received stars/language
             // so the Bookmarks tab shows up-to-date data without re-fetching.
             enrichPersistedBookmarks(with: detailMap)
-
-        case .fetchFailed, .toggleGroup:
+        
+        case .toggleBookmark(let repo, let isBookmarked):
+            if isBookmarked {
+                bookmarkService.addBookmark(repo)
+            } else {
+                bookmarkService.removeBookmark(repo)
+            }
+        
+        case .fetchFailed, .toggleGroup, .syncBookmark:
             break
         }
     }
 
     // MARK: - Subscribers
     
-    private func subscribeToEvents() {
+    private func subscribeToService() {
+        bookmarkService.bookmarksLoadedSubject
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.dispatch(.syncBookmark(self.bookmarkService.cachedBookmarkedIDs))
+            }
+            .store(in: &cancellables)
+        
+        bookmarkService.bookmarkAddedSubject
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.dispatch(.syncBookmark(self.bookmarkService.cachedBookmarkedIDs))
+            }
+            .store(in: &cancellables)
+
+        bookmarkService.bookmarkRemovedSubject
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.dispatch(.syncBookmark(self.bookmarkService.cachedBookmarkedIDs))
+            }
+            .store(in: &cancellables)
+    }
+    
+//    private func subscribeToEvents() {
 //        AppEventBus.shared.events
 //            .sink { [weak self] event in
 //                guard let self else { return }
 //                
 //                switch event {
+//                case .bookmarkToggled(let repo, let isBookmarked):
+//                    // Sync bookmark changes from other screens (e.g. RepoDetailView)
+//                    dispatch(.toggleBookmark(repo, isBookmarked: isBookmarked))
 //                case .repositoryEnriched(let repo):
-//                    dispatch(.detailsLoaded([repo.fullName: repo]))
-//                    
-//                default:
+////                    dispatch(.repositoryEnriched(repo))
 //                    break
 //                }
 //            }
 //            .store(in: &cancellables)
-    }
+//    }
     
     // MARK: - Private side effects
     
@@ -119,10 +154,10 @@ final class RepoListStore: ObservableObject {
     }
 
     private func enrichPersistedBookmarks(with detailMap: [String: RepositoryDetail]) {
-        let saved = (try? persistence.loadAllRepos()) ?? []
+        let saved = bookmarkService.cachedBookmarks
         saved.forEach { repo in
             guard let detail = detailMap[repo.fullName] else { return }
-            try? persistence.update(repo.merging(detail: detail))
+            bookmarkService.updateBookmark(repo.merging(detail: detail))
         }
     }
 }

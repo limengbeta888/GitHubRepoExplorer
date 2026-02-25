@@ -10,12 +10,14 @@ import Foundation
 enum RepoListIntent {
 
     // User actions
-    case loadInitial
     case loadMore
     case changeGrouping(GroupingOption)
     case toggleGroup(String)
+    case toggleBookmark(Repository, isBookmarked: Bool)
     
-    // System events dispatched by Store after async work completes
+    // System events
+    case loadInitial
+    case syncBookmark(Set<Int>)
     case repositoriesLoaded([Repository], nextURL: URL?)
     case fetchDetails
     case detailsLoaded([String: RepositoryDetail])

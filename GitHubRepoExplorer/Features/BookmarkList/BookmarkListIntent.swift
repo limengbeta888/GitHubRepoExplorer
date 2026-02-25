@@ -10,7 +10,6 @@ import Foundation
 enum BookmarkListIntent {
 
     // User actions
-    case bookmark(Repository)
     case removeBookmark(Repository)
 
     // System events

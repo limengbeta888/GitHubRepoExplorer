@@ -27,6 +27,9 @@ struct BookmarkListView: View {
                 bottomHint
             }
         }
+        .task {
+            store.dispatch(.loadBookmarks)
+        }
     }
 
     // MARK: - Empty state
@@ -45,7 +48,7 @@ struct BookmarkListView: View {
             ForEach(state.bookmarkedRepos) { repo in
                 NavigationLink(destination: RepoDetailView(store: RepoDetailStore(repo: repo))) {
                     RepoRowView(repo: repo,
-                                isBookmarked: store.state.isBookmarked(repo))
+                                isBookmarked: .constant(true))
                 }
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
@@ -75,11 +78,7 @@ struct BookmarkListView: View {
 }
 
 #Preview("Has bookmarks") {
-    let store = BookmarkListStore(persistence: PersistenceService.inMemory())
-    Repository.allMocks.prefix(3).forEach {
-        store.dispatch(.bookmark($0))
-    }
-    
+    let store = BookmarkListStore(bookmarkService: MockBookmarkService(behaviour: .hasBookmarks))
     return NavigationStack {
         BookmarkListView(store: store)
     }
@@ -87,6 +86,6 @@ struct BookmarkListView: View {
 
 #Preview("Empty") {
     NavigationStack {
-        BookmarkListView(store: BookmarkListStore(persistence: PersistenceService.inMemory()))
+        BookmarkListView(store: BookmarkListStore(bookmarkService: MockBookmarkService(behaviour: .noBookmarks)))
     }
 }

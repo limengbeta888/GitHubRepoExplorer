@@ -17,9 +17,14 @@ enum PersistenceError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notFound:           return "Record not found."
-        case .saveFailed(let e):  return "Failed to save: \(e.localizedDescription)"
-        case .loadFailed(let e):  return "Failed to load: \(e.localizedDescription)"
+        case .notFound:           
+            return "Record not found."
+            
+        case .saveFailed(let e):
+            return "Failed to save: \(e.localizedDescription)"
+            
+        case .loadFailed(let e):
+            return "Failed to load: \(e.localizedDescription)"
         }
     }
 }
@@ -38,10 +43,8 @@ protocol PersistenceServiceProtocol {
 
 final class PersistenceService: PersistenceServiceProtocol {
     static let shared = PersistenceService()
-    
-    private let context: ModelContext
 
-    // MARK: - Init
+    private let context: ModelContext
 
     private init() {
         let schema = Schema([RepositoryModel.self])
@@ -63,21 +66,17 @@ final class PersistenceService: PersistenceServiceProtocol {
 
     func remove(_ repo: Repository) throws {
         guard let model = try fetchModel(id: repo.id) else { return }
-        
         context.delete(model)
-        
         try save()
     }
 
     func update(_ repo: Repository) throws {
         guard let model = try fetchModel(id: repo.id) else { return }
-        
         model.stargazersCount = repo.stargazersCount
-        model.language = repo.language
-        model.forksCount = repo.forksCount
+        model.language        = repo.language
+        model.forksCount      = repo.forksCount
         model.openIssuesCount = repo.openIssuesCount
-        model.updatedAt = repo.updatedAt
-        
+        model.updatedAt       = repo.updatedAt
         try save()
     }
 
