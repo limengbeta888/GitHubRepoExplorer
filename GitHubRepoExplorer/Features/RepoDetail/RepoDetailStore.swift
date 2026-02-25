@@ -15,6 +15,8 @@ final class RepoDetailStore: ObservableObject {
     private let service: GitHubServiceProtocol
     private let persistence: PersistenceServiceProtocol
 
+    // nil defaults resolved inside init — avoids referencing actor-isolated
+    // state in a nonisolated default argument expression.
     init(
         repo: Repository,
         service: GitHubServiceProtocol? = nil,
@@ -37,9 +39,7 @@ final class RepoDetailStore: ObservableObject {
                 await fetchDetail()
             }
             
-            Task {
-                loadBookmarkStatus()
-            }
+            loadBookmarkStatus()
 
         case .toggleBookmark:
             // State already flipped by reducer — now sync to persistence
@@ -62,7 +62,7 @@ final class RepoDetailStore: ObservableObject {
     }
 
     private func loadBookmarkStatus() {
-        let saved = (try? persistence.loadAll()) ?? []
+        let saved = (try? persistence.loadAllRepos()) ?? []
         dispatch(.bookmarkStatusLoaded(saved.contains { $0.id == state.repository.id }))
     }
 

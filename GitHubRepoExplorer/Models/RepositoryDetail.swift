@@ -8,7 +8,7 @@
 import Foundation
 
 /// Fields returned by GET /repos/{owner}/{repo} that are absent from the list endpoint.
-struct RepositoryDetail: Codable {
+struct RepositoryDetail: Codable, Sendable {
     let stargazersCount: Int?
     let language: String?
     let forksCount: Int?

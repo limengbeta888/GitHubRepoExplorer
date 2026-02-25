@@ -28,11 +28,21 @@ enum RepoListReducer {
         case .changeGrouping(let option):
             next.groupingOption = option
 
+        case .toggleGroup(let key):
+            if next.collapsedGroups.contains(key) {
+                next.collapsedGroups.remove(key)
+            } else {
+                next.collapsedGroups.insert(key)
+            }
+            
         case .repositoriesLoaded(let repos, let nextURL):
             next.repositories.append(contentsOf: repos)
             next.nextPageURL = nextURL
             next.phase = .loaded
 
+        case .fetchDetails:
+            next.phase = .fetchingDetails
+            
         case .detailsLoaded(let detailMap):
             next.repositories = state.repositories.map { repo in
                 guard let detail = detailMap[repo.fullName] else {

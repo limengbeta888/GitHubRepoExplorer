@@ -12,7 +12,8 @@ struct RepoListState: Equatable {
     var nextPageURL: URL?
     var groupingOption: GroupingOption = .ownerType
     var phase: Phase = .idle
-
+    var collapsedGroups: Set<String> = []
+    
     // MARK: - Phase
 
     enum Phase: Equatable {

@@ -11,7 +11,9 @@ struct RepoListView: View {
     @ObservedObject var store: RepoListStore
     @ObservedObject var bookmarkStore: BookmarkListStore
     
-    private var state: RepoListState { store.state }
+    private var state: RepoListState {
+        store.state
+    }
     
     var body: some View {
         Group {
@@ -26,9 +28,17 @@ struct RepoListView: View {
         }
         .navigationTitle("GitHub Repos")
         .navigationBarTitleDisplayMode(.automatic)
-        .toolbar { toolbarContent }
-        .task { store.dispatch(.loadInitial) }
-        .refreshable { store.dispatch(.loadInitial) }
+        .toolbar {
+            toolbarContent
+        }
+        .task {
+            store.dispatch(.loadInitial)
+        }
+        .refreshable {
+            if state.repositories.isEmpty {
+                store.dispatch(.loadInitial)
+            }
+        }
     }
 
     // MARK: - Loading
@@ -78,7 +88,7 @@ struct RepoListView: View {
                     }
                 }
             }
-
+            
             // Background detail-enrichment indicator
             if state.phase == .fetchingDetails {
                 Section {
@@ -91,42 +101,52 @@ struct RepoListView: View {
                     }
                 }
             }
-
+            
             ForEach(state.groupedRepositories, id: \.key) { group in
-                Section(header: GroupHeader(group: group.key, count: group.repos.count)) {
-                    ForEach(group.repos) { repo in
-                        NavigationLink(destination: RepoDetailView(store: RepoDetailStore(repo: repo))) {
-                            RepoRowView(repo: repo,
-                                        isBookmarked: bookmarkStore.state.isBookmarked(repo))
-                        }
-                        .swipeActions(edge: .trailing) {
-                            bookmarkSwipeButton(for: repo)
-                        }
-                        .onAppear {
-                            if isLastItem(repo, in: group) { store.dispatch(.loadMore) }
+                Section {
+                    if !state.collapsedGroups.contains(group.key) {
+                        ForEach(group.repos) { repo in
+                            NavigationLink(destination: RepoDetailView(store: RepoDetailStore(repo: repo))) {
+                                RepoRowView(repo: repo,
+                                            isBookmarked: bookmarkStore.state.isBookmarked(repo))
+                            }
+                            .swipeActions(edge: .trailing) {
+                                bookmarkSwipeButton(for: repo)
+                            }
                         }
                     }
+                } header: {
+                    Button {
+                        store.dispatch(.toggleGroup(group.key))
+                    } label: {
+                        HStack {
+                            Text(group.key).font(.headline)
+                            
+                            Spacer()
+                            
+                            Text("\(group.repos.count)")
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(Color.accentColor.opacity(0.15))
+                                .foregroundStyle(Color.accentColor)
+                                .clipShape(Capsule())
+                            
+                            Image(systemName: state.collapsedGroups.contains(group.key)
+                                  ? "chevron.right" : "chevron.down")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-
-            // Pagination footer
-            if state.phase == .loadingMore {
-                Section {
-                    HStack { Spacer(); ProgressView(); Spacer() }
-                        .listRowBackground(Color.clear)
-                }
-            } else if !state.hasMorePages, !state.repositories.isEmpty {
-                Section {
-                    Text("All repositories loaded")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .listRowBackground(Color.clear)
-                }
-            }
+            
+            // Always rendered — completely independent of section collapse state
+            paginationFooter
         }
         .listStyle(.insetGrouped)
-        .animation(.default, value: state.groupedRepositories.map(\.key))
     }
 
     // MARK: - Toolbar
@@ -141,7 +161,8 @@ struct RepoListView: View {
                                        set: { store.dispatch(.changeGrouping($0)) })
                 ) {
                     ForEach(GroupingOption.allCases) { opt in
-                        Text(opt.rawValue).tag(opt)
+                        Text(opt.rawValue)
+                            .tag(opt)
                     }
                 }
             } label: {
@@ -153,6 +174,40 @@ struct RepoListView: View {
     // MARK: - Subviews
 
     @ViewBuilder
+    private var paginationFooter: some View {
+        Section {
+            switch state.phase {
+            case .loadingMore:
+                HStack {
+                    Spacer();
+                    ProgressView();
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
+
+            case .loaded where state.hasMorePages:
+                // Invisible sentinel — triggers load when it scrolls into view
+                Color.clear
+                    .frame(height: 1)
+                    .listRowBackground(Color.clear)
+                    .onAppear {
+                        store.dispatch(.loadMore)
+                    }
+
+            case .loaded where !state.hasMorePages && !state.repositories.isEmpty:
+                Text("All repositories loaded")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+
+            default:
+                EmptyView()
+            }
+        }
+    }
+    
+    @ViewBuilder
     private func bookmarkSwipeButton(for repo: Repository) -> some View {
         let isBookmarked = bookmarkStore.state.isBookmarked(repo)
         Button {
@@ -163,35 +218,31 @@ struct RepoListView: View {
         }
         .tint(isBookmarked ? .red : .accentColor)
     }
-
-    private func isLastItem(_ repo: Repository, in group: (key: String, repos: [Repository])) -> Bool {
-        repo.id == group.repos.last?.id && group.key == state.groupedRepositories.last?.key
-    }
 }
 
 // MARK: - Preview
 
 #Preview("Loaded") {
     let store = RepoListStore(service: MockGitHubService())
-    store.state.repositories = Repository.allMocks
-    store.state.phase = .loaded
     return NavigationStack {
-        RepoListView(store: store, bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
+        RepoListView(store: store,
+                     bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
     }
 }
 
 #Preview("Loading") {
-    let store = RepoListStore(service: MockGitHubService())
-    store.state.phase = .loadingInitial
+    let gitHubService = MockGitHubService(behaviour: .success, sleepMillis: 10000)
+    let store = RepoListStore(service: gitHubService)
     return NavigationStack {
-        RepoListView(store: store, bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
+        RepoListView(store: store,
+                     bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
     }
 }
 
 #Preview("Error") {
-    let store = RepoListStore(service: MockGitHubService(behaviour: .rateLimited))
-    store.state.phase = .error("GitHub API rate limit exceeded.")
+    let store = RepoListStore(service: MockGitHubService(behaviour: .networkError))
     return NavigationStack {
-        RepoListView(store: store, bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
+        RepoListView(store: store,
+                     bookmarkStore: BookmarkListStore(persistence: PersistenceService.inMemory()))
     }
 }

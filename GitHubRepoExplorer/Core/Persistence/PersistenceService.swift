@@ -30,8 +30,8 @@ protocol PersistenceServiceProtocol {
     func add(_ repo: Repository) throws
     func remove(_ repo: Repository) throws
     func update(_ repo: Repository) throws
-    func loadAll() throws -> [Repository]
-    func deleteAll() throws
+    func loadAllRepos() throws -> [Repository]
+    func deleteAllRepos() throws
 }
 
 // MARK: - Implementation
@@ -81,14 +81,14 @@ final class PersistenceService: PersistenceServiceProtocol {
         try save()
     }
 
-    func loadAll() throws -> [Repository] {
+    func loadAllRepos() throws -> [Repository] {
         let descriptor = FetchDescriptor<RepositoryModel>(
             sortBy: [SortDescriptor(\.insertedAt, order: .reverse)]
         )
         return try context.fetch(descriptor).map { $0.toRepository() }
     }
 
-    func deleteAll() throws {
+    func deleteAllRepos() throws {
         try context.delete(model: RepositoryModel.self)
         try save()
     }

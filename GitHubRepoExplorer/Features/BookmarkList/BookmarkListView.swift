@@ -76,7 +76,10 @@ struct BookmarkListView: View {
 
 #Preview("Has bookmarks") {
     let store = BookmarkListStore(persistence: PersistenceService.inMemory())
-    Repository.allMocks.prefix(3).forEach { store.dispatch(.bookmark($0)) }
+    Repository.allMocks.prefix(3).forEach {
+        store.dispatch(.bookmark($0))
+    }
+    
     return NavigationStack {
         BookmarkListView(store: store)
     }

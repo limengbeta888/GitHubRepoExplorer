@@ -13,7 +13,10 @@ enum BookmarkListReducer {
         var next = state
 
         switch intent {
-        case .loadBookmarks(let repos):
+        case .loadBookmarks:
+            break
+            
+        case .bookmarksLoaded(let repos):
             next.bookmarkedRepos = repos
             next.bookmarkedIDs = Set(repos.map(\.id))
 

@@ -24,29 +24,32 @@ struct RepoDetailView: View {
                 headerCard
                 statsGrid
                 openInBrowserButton
-                
-                Spacer()
-                
-                if case .error(let msg) = state.phase {
-                    HStack {
-                        Spacer()
-                        
-                        Text(msg)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .multilineTextAlignment(.center)
-                            .padding()
-                        
-                        Spacer()
-                    }
-                }
             }
             .padding(.vertical)
         }
         .navigationTitle(repo.name)
         .navigationBarTitleDisplayMode(.automatic)
-        .toolbar { toolbarContent }
-        .task { store.dispatch(.loadDetail) }
+        .toolbar {
+            toolbarContent
+        }
+        .task {
+            store.dispatch(.loadDetail)
+        }
+        .safeAreaInset(edge: .bottom) {
+            if case .error(let msg) = state.phase {
+                HStack {
+                    Spacer()
+                    
+                    Text(msg)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                    
+                    Spacer()
+                }
+            }
+        }
     }
 
     // MARK: - Header
@@ -134,9 +137,12 @@ struct RepoDetailView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button { store.dispatch(.toggleBookmark) } label: {
+            Button {
+                store.dispatch(.toggleBookmark)
+            } label: {
                 Image(systemName: state.isBookmarked ? "bookmark.fill" : "bookmark")
             }
+            .tint(state.isBookmarked ? .yellow : .gray)
         }
     }
 }
@@ -151,15 +157,16 @@ struct RepoDetailView: View {
 }
 
 #Preview("Pending fetch") {
-    let store = RepoDetailStore(repo: .mockOriginal)
+    let gitHubService = MockGitHubService(behaviour: .success, sleepMillis: 10000)
+    let store = RepoDetailStore(repo: .mockOriginal, service: gitHubService)
     return NavigationStack {
         RepoDetailView(store: store)
     }
 }
 
 #Preview("Error") {
-    let store = RepoDetailStore(repo: .mockOrgRepo)
-    store.state.phase = .error("GitHub API rate limit exceeded.")
+    let store = RepoDetailStore(repo: .mockOriginal,
+                                service: MockGitHubService(behaviour: .networkError))
     return NavigationStack {
         RepoDetailView(store: store)
     }

@@ -18,7 +18,7 @@ final class BookmarkListStore: ObservableObject {
 
     init(persistence: PersistenceServiceProtocol? = nil) {
         self.persistence = persistence ?? PersistenceService.shared
-        loadFromDisk()
+        dispatch(.loadBookmarks)
     }
 
     // MARK: - Dispatch
@@ -27,6 +27,10 @@ final class BookmarkListStore: ObservableObject {
         state = BookmarkListReducer.reduce(state, intent: intent)
 
         switch intent {
+        case .loadBookmarks:
+            let repos = (try? persistence.loadAllRepos()) ?? []
+            dispatch(.bookmarksLoaded(repos))
+            
         case .bookmark(let repo):
             try? persistence.add(repo)
 
@@ -36,15 +40,8 @@ final class BookmarkListStore: ObservableObject {
         case .updateEnriched(let repos):
             repos.forEach { try? persistence.update($0) }
 
-        case .loadBookmarks:
+        case .bookmarksLoaded:
             break
         }
-    }
-
-    // MARK: - Private
-
-    private func loadFromDisk() {
-        let repos = (try? persistence.loadAll()) ?? []
-        state = BookmarkListReducer.reduce(state, intent: .loadBookmarks(repos))
     }
 }

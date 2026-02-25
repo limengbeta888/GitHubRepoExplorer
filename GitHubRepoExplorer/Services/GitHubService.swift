@@ -9,6 +9,20 @@
 
 import Foundation
 
+// MARK: - DetailCache
+
+private actor DetailCache {
+    private var storage: [String: RepositoryDetail] = [:]
+
+    func value(for key: String) -> RepositoryDetail? {
+        storage[key]
+    }
+
+    func insert(_ value: RepositoryDetail, for key: String) {
+        storage[key] = value
+    }
+}
+
 // MARK: - Protocol
 
 protocol GitHubServiceProtocol {
@@ -20,12 +34,12 @@ protocol GitHubServiceProtocol {
 
 // MARK: - Implementation
 
-actor GitHubService: GitHubServiceProtocol {
+class GitHubService: GitHubServiceProtocol {
     static let shared = GitHubService()
 
     private let client: NetworkClientProtocol
     private let config: GitHubAPIConfig
-    private var detailCache: [String: RepositoryDetail] = [:]
+    private let cache = DetailCache()
 
     private init(
         client: NetworkClientProtocol = NetworkClient(),
@@ -54,11 +68,11 @@ actor GitHubService: GitHubServiceProtocol {
     // MARK: - Detail (with actor-isolated cache)
 
     func fetchDetail(for repo: Repository) async throws -> RepositoryDetail {
-        if let cached = detailCache[repo.fullName] { return cached }
+        if let cached = await cache.value(for: repo.fullName) { return cached }
         let detail: RepositoryDetail = try await client.request(
             endpoint: PublicReposEndpoint.repositoryDetail(fullName: repo.fullName, config: config)
         )
-        detailCache[repo.fullName] = detail
+        await cache.insert(detail, for: repo.fullName)
         return detail
     }
 
@@ -85,3 +99,4 @@ actor GitHubService: GitHubServiceProtocol {
         }
     }
 }
+

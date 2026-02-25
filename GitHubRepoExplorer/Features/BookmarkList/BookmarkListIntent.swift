@@ -14,6 +14,7 @@ enum BookmarkListIntent {
     case removeBookmark(Repository)
 
     // System events
-    case loadBookmarks([Repository])
-    case updateEnriched([Repository])    // called when detail fetch enriches a bookmarked repo
+    case loadBookmarks
+    case bookmarksLoaded([Repository])      // persistence returned the data
+    case updateEnriched([Repository])       // called when detail fetch enriches a bookmarked repo
 }

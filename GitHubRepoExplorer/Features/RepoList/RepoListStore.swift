@@ -53,6 +53,14 @@ final class RepoListStore: ObservableObject {
                 triggerDetailFetchIfNeeded()
             }
 
+        case .fetchDetails:
+            // To fetch the information of languages and stargazers
+            detailTask?.cancel()
+            detailTask = Task {
+                let detailMap = await service.fetchDetails(for: state.repositories.filter { $0.stargazersCount == nil })
+                dispatch(.detailsLoaded(detailMap))
+            }
+            
         case .repositoriesLoaded:
             if state.groupingOption.requiresDetail {
                 triggerDetailFetchIfNeeded()
@@ -63,7 +71,7 @@ final class RepoListStore: ObservableObject {
             // so the Bookmarks tab shows up-to-date data without re-fetching.
             enrichPersistedBookmarks(with: detailMap)
 
-        case .fetchFailed:
+        case .fetchFailed, .toggleGroup:
             break
         }
     }
@@ -84,20 +92,12 @@ final class RepoListStore: ObservableObject {
     private func triggerDetailFetchIfNeeded() {
         let missing = state.repositories.filter { $0.stargazersCount == nil }
         guard !missing.isEmpty else { return }
-
-        var next = state
-        next.phase = .fetchingDetails
-        state = next
-
-        detailTask?.cancel()
-        detailTask = Task {
-            let detailMap = await service.fetchDetails(for: missing)
-            dispatch(.detailsLoaded(detailMap))
-        }
+        
+        dispatch(.fetchDetails)
     }
 
     private func enrichPersistedBookmarks(with detailMap: [String: RepositoryDetail]) {
-        let saved = (try? persistence.loadAll()) ?? []
+        let saved = (try? persistence.loadAllRepos()) ?? []
         saved.forEach { repo in
             guard let detail = detailMap[repo.fullName] else { return }
             try? persistence.update(repo.merging(detail: detail))
