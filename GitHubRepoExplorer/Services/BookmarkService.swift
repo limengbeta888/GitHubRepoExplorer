@@ -12,10 +12,10 @@ import Combine
 
 protocol BookmarkServiceProtocol {
     // Subjects — stores subscribe to react to changes
-    var bookmarkAddedSubject: PassthroughSubject<Repository, Never> { get }
-    var bookmarkRemovedSubject: PassthroughSubject<Repository, Never> { get }
-    var bookmarksLoadedSubject: CurrentValueSubject<[Repository], Never> { get }
-    var bookmarkUpdatedSubject: PassthroughSubject<Repository, Never> { get }
+    var bookmarkAdded: PassthroughSubject<Repository, Never> { get }
+    var bookmarkRemoved: PassthroughSubject<Repository, Never> { get }
+    var bookmarksLoadedSubject: PassthroughSubject<[Repository], Never> { get }
+    var bookmarkUpdated: PassthroughSubject<Repository, Never> { get }
     var allBookmarksDeletedSubject: PassthroughSubject<Void, Never> { get }
 
     // In-memory cache — bookmark check without hitting persistence
@@ -34,10 +34,10 @@ protocol BookmarkServiceProtocol {
 final class BookmarkService: BookmarkServiceProtocol {
     static let shared = BookmarkService()
 
-    let bookmarkAddedSubject = PassthroughSubject<Repository, Never>()
-    let bookmarkRemovedSubject = PassthroughSubject<Repository, Never>()
-    let bookmarksLoadedSubject = CurrentValueSubject<[Repository], Never>([])
-    let bookmarkUpdatedSubject = PassthroughSubject<Repository, Never>()
+    let bookmarkAdded = PassthroughSubject<Repository, Never>()
+    let bookmarkRemoved = PassthroughSubject<Repository, Never>()
+    let bookmarksLoadedSubject = PassthroughSubject<[Repository], Never>()
+    let bookmarkUpdated = PassthroughSubject<Repository, Never>()
     let allBookmarksDeletedSubject = PassthroughSubject<Void, Never>()
 
     private(set) var cachedBookmarks: [Repository] = []
@@ -58,6 +58,10 @@ final class BookmarkService: BookmarkServiceProtocol {
         loadAllBookmarks()
     }
 
+    deinit {
+        cancellables.removeAll()
+    }
+    
     // MARK: - BookmarkServiceProtocol
 
     func addBookmark(_ repo: Repository) {
@@ -68,7 +72,7 @@ final class BookmarkService: BookmarkServiceProtocol {
         cachedBookmarks.insert(repo, at: 0)
         cachedBookmarkedIDs.insert(repo.id)
         
-        bookmarkAddedSubject.send(repo)
+        bookmarkAdded.send(repo)
     }
 
     func removeBookmark(_ repo: Repository) {
@@ -79,7 +83,7 @@ final class BookmarkService: BookmarkServiceProtocol {
         cachedBookmarks.removeAll { $0.id == repo.id }
         cachedBookmarkedIDs.remove(repo.id)
         
-        bookmarkRemovedSubject.send(repo)
+        bookmarkRemoved.send(repo)
     }
 
     func updateBookmark(_ repo: Repository) {
@@ -91,7 +95,7 @@ final class BookmarkService: BookmarkServiceProtocol {
             cachedBookmarks[index] = repo
         }
         
-        bookmarkUpdatedSubject.send(repo)
+        bookmarkUpdated.send(repo)
     }
 
     func loadAllBookmarks() {
@@ -114,7 +118,7 @@ final class BookmarkService: BookmarkServiceProtocol {
     // MARK: - Private
     
     private func subscribeToService() {
-        repositoryUpdateService.repositoryEnrichedSubject
+        repositoryUpdateService.repositoryEnriched
              .receive(on: DispatchQueue.main)
              .sink { [weak self] repo in
                  guard let self else { return }

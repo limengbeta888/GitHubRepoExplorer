@@ -14,7 +14,7 @@ final class RepoDetailStore: ObservableObject {
 
     private var detailTask: Task<Void, Never>?
     
-    private let service: GitHubServiceProtocol
+    private let githubService: GitHubServiceProtocol
     private let bookmarkService: BookmarkServiceProtocol
     private let repositoryUpdateService: RepositoryUpdateServiceProtocol
     
@@ -24,22 +24,26 @@ final class RepoDetailStore: ObservableObject {
     // state in a nonisolated default argument expression.
     init(
         repo: Repository,
-        service: GitHubServiceProtocol? = nil,
+        githubService: GitHubServiceProtocol? = nil,
         bookmarkService: BookmarkServiceProtocol? = nil,
         repositoryUpdateService: RepositoryUpdateServiceProtocol? = nil
     ) {
         self.state = RepoDetailState(repository: repo)
-        self.service = service ?? GitHubService.shared
+        self.githubService = githubService ?? GitHubService.shared
         self.bookmarkService = bookmarkService ?? BookmarkService.shared
         self.repositoryUpdateService = repositoryUpdateService ?? RepositoryUpdateService.shared
         
         subscribeToService(repo: repo)
         
-        let isBookmarked = bookmarkService?.cachedBookmarkedIDs.contains(repo.id)
-            ?? BookmarkService.shared.cachedBookmarkedIDs.contains(repo.id)
+        let bookmarkSvc = bookmarkService ?? BookmarkService.shared
+        let isBookmarked = bookmarkSvc.cachedBookmarkedIDs.contains(repo.id)
         dispatch(.syncBookmark(isBookmarked: isBookmarked))
     }
 
+    deinit {
+        cancellables.removeAll()
+    }
+    
     // MARK: - Dispatch
 
     func dispatch(_ intent: RepoDetailIntent) {
@@ -50,8 +54,9 @@ final class RepoDetailStore: ObservableObject {
             guard state.phase == .loadingDetail else { return }
             
             detailTask?.cancel()
-            detailTask = Task {
-                await fetchDetail()
+            detailTask = Task { [weak self] in
+                guard let self else { return }
+                await self.fetchDetail()
             }
             
         case .toggleBookmark:
@@ -73,7 +78,7 @@ final class RepoDetailStore: ObservableObject {
 
     private func fetchDetail() async {
         do {
-            let detail = try await service.fetchDetail(for: state.repository)
+            let detail = try await githubService.fetchDetail(for: state.repository)
             dispatch(.detailLoaded(detail))
         } catch {
             dispatch(.fetchFailed(error.localizedDescription))
@@ -82,7 +87,7 @@ final class RepoDetailStore: ObservableObject {
 
     /// Keeps bookmark icon in sync if toggled from another screen (e.g. RepoListView swipe)
     private func subscribeToService(repo: Repository) {
-        bookmarkService.bookmarkAddedSubject
+        bookmarkService.bookmarkAdded
             .filter { $0.id == repo.id }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -90,7 +95,7 @@ final class RepoDetailStore: ObservableObject {
             }
             .store(in: &cancellables)
 
-        bookmarkService.bookmarkRemovedSubject
+        bookmarkService.bookmarkRemoved
             .filter { $0.id == repo.id }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in

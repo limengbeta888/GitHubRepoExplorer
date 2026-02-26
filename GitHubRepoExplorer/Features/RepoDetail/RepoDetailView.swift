@@ -158,7 +158,7 @@ struct RepoDetailView: View {
 
 #Preview("Pending fetch") {
     let gitHubService = MockGitHubService(behaviour: .success, sleepMillis: 10000)
-    let store = RepoDetailStore(repo: .mockOriginal, service: gitHubService)
+    let store = RepoDetailStore(repo: .mockOriginal, githubService: gitHubService)
     return NavigationStack {
         RepoDetailView(store: store)
     }
@@ -166,7 +166,7 @@ struct RepoDetailView: View {
 
 #Preview("Error") {
     let store = RepoDetailStore(repo: .mockOriginal,
-                                service: MockGitHubService(behaviour: .networkError))
+                                githubService: MockGitHubService(behaviour: .networkError))
     return NavigationStack {
         RepoDetailView(store: store)
     }

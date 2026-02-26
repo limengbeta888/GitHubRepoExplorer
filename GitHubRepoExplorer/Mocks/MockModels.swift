@@ -7,6 +7,7 @@
 
 // MARK: - MockOwner
 
+@MainActor
 extension Owner {
     static let mockUser = Owner(login: "mojombo",
                                 avatarUrl: "https://avatars.githubusercontent.com/u/1?v=4",
@@ -19,6 +20,7 @@ extension Owner {
 
 // MARK: - MockRepository
 
+@MainActor
 extension Repository {
     static let mockOriginal = Repository(
         id: 28,
@@ -149,6 +151,7 @@ extension Repository {
 
 // MARK: - MockRepositoryDetail
 
+@MainActor
 extension RepositoryDetail {
     static let mockBasic = RepositoryDetail(
         stargazersCount: 1_234, language: "Ruby",

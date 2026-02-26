@@ -8,24 +8,32 @@
 import Combine
 
 protocol RepositoryUpdateServiceProtocol {
-    var repositoryEnrichedSubject: PassthroughSubject<Repository, Never> { get }
-    var repositoriesEnrichedSubject: PassthroughSubject<[Repository], Never> { get }
-    
+    var repositoryEnriched: AnyPublisher<Repository, Never> { get }
+    var repositoriesEnriched: AnyPublisher<[Repository], Never> { get }
+
     func publishEnrichment(_ repo: Repository)
     func publishEnrichments(_ repos: [Repository])
 }
 
 final class RepositoryUpdateService: RepositoryUpdateServiceProtocol {
+
     static let shared = RepositoryUpdateService()
-    let repositoryEnrichedSubject = PassthroughSubject<Repository, Never>()
-    let repositoriesEnrichedSubject = PassthroughSubject<[Repository], Never>()
-    
-    private init() {}
+
+    private let repositoryEnrichedSubject = PassthroughSubject<Repository, Never>()
+    private let repositoriesEnrichedSubject = PassthroughSubject<[Repository], Never>()
+
+    var repositoryEnriched: AnyPublisher<Repository, Never> {
+        repositoryEnrichedSubject.eraseToAnyPublisher()
+    }
+
+    var repositoriesEnriched: AnyPublisher<[Repository], Never> {
+        repositoriesEnrichedSubject.eraseToAnyPublisher()
+    }
 
     func publishEnrichment(_ repo: Repository) {
         repositoryEnrichedSubject.send(repo)
     }
-    
+
     func publishEnrichments(_ repos: [Repository]) {
         repositoriesEnrichedSubject.send(repos)
     }

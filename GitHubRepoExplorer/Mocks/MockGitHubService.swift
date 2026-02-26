@@ -7,6 +7,7 @@
 
 import Foundation
 
+@MainActor
 class MockGitHubService: GitHubServiceProtocol {
     enum Behaviour {
         case success
@@ -26,8 +27,6 @@ class MockGitHubService: GitHubServiceProtocol {
 
     // First page — no cursor needed
     func fetchRepositories() async throws -> (repos: [Repository], nextURL: URL?) {
-        try await Task.sleep(for: .milliseconds(sleepMillis))
-        
         switch behaviour {
         case .rateLimited:
             throw NetworkError.apiRateLimit
@@ -49,8 +48,6 @@ class MockGitHubService: GitHubServiceProtocol {
 
     // Subsequent pages — cursor URL provided by Link header
     func fetchNextRepositories(url: URL) async throws -> (repos: [Repository], nextURL: URL?) {
-        try await Task.sleep(for: .milliseconds(sleepMillis))
-        
         switch behaviour {
         case .rateLimited:
             throw NetworkError.apiRateLimit
@@ -70,8 +67,6 @@ class MockGitHubService: GitHubServiceProtocol {
     }
 
     func fetchDetail(for repo: Repository) async throws -> RepositoryDetail {
-        try await Task.sleep(for: .milliseconds(sleepMillis))
-        
         switch behaviour {
         case .rateLimited:
             throw NetworkError.apiRateLimit

@@ -7,15 +7,25 @@
 
 import Combine
 
+@MainActor
 final class MockRepositoryUpdateService: RepositoryUpdateServiceProtocol {
-    let repositoryEnrichedSubject = PassthroughSubject<Repository, Never>()
-    let repositoriesEnrichedSubject = PassthroughSubject<[Repository], Never>()
-    
-    func publishEnrichment(_ repo: Repository) {
-        
+
+    private let repositoryEnrichedSubject = PassthroughSubject<Repository, Never>()
+    private let repositoriesEnrichedSubject = PassthroughSubject<[Repository], Never>()
+
+    var repositoryEnriched: AnyPublisher<Repository, Never> {
+        repositoryEnrichedSubject.eraseToAnyPublisher()
     }
-    
+
+    var repositoriesEnriched: AnyPublisher<[Repository], Never> {
+        repositoriesEnrichedSubject.eraseToAnyPublisher()
+    }
+
+    func publishEnrichment(_ repo: Repository) {
+        repositoryEnrichedSubject.send(repo)
+    }
+
     func publishEnrichments(_ repos: [Repository]) {
-        
+        repositoriesEnrichedSubject.send(repos)
     }
 }

@@ -41,14 +41,14 @@ class GitHubService: GitHubServiceProtocol {
     private let config: GitHubAPIConfig
     private let cache = DetailCache()
 
-    private init(
+    init(
         client: NetworkClientProtocol = NetworkClient(),
         config: GitHubAPIConfig = GitHubAPIConfig()
     ) {
         self.client = client
         self.config = config
     }
-
+    
     // MARK: - List
 
     func fetchRepositories() async throws -> (repos: [Repository], nextURL: URL?) {

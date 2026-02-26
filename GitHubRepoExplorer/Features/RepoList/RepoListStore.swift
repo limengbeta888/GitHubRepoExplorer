@@ -13,7 +13,7 @@ import SwiftUI
 final class RepoListStore: ObservableObject {
     @Published private(set) var state = RepoListState()
 
-    private let service: GitHubServiceProtocol
+    private let gitHubService: GitHubServiceProtocol
     private let bookmarkService: BookmarkServiceProtocol
     private let repositoryUpdateService: RepositoryUpdateServiceProtocol
     
@@ -25,17 +25,21 @@ final class RepoListStore: ObservableObject {
     // nil defaults resolved inside init — avoids referencing actor-isolated
     // state in a nonisolated default argument expression.
     init(
-        service: GitHubServiceProtocol? = nil,
+        gitHubService: GitHubServiceProtocol? = nil,
         bookmarkService: BookmarkServiceProtocol? = nil,
         repositoryUpdateService: RepositoryUpdateServiceProtocol? = nil
     ) {
-        self.service = service ?? GitHubService.shared
+        self.gitHubService = gitHubService ?? GitHubService.shared
         self.bookmarkService = bookmarkService ?? BookmarkService.shared
         self.repositoryUpdateService = repositoryUpdateService ?? RepositoryUpdateService.shared
         
         subscribeToService()
     }
 
+    deinit {
+        cancellables.removeAll()
+    }
+    
     // MARK: - Dispatch
 
     func dispatch(_ intent: RepoListIntent) {
@@ -45,15 +49,17 @@ final class RepoListStore: ObservableObject {
         case .loadInitial:
             guard state.phase == .loadingInitial else { return }
             fetchTask?.cancel()
-            fetchTask = Task {
-                await fetchPage()
+            fetchTask = Task { [weak self] in
+                guard let self else { return }
+                await self.fetchPage()
             }
 
         case .loadMore:
-            guard state.phase == .loadingMore else { return }
+            guard state.phase == .loadingMore, state.nextPageURL != nil else { return }
             fetchTask?.cancel()
-            fetchTask = Task {
-                await fetchPage()
+            fetchTask = Task { [weak self] in
+                guard let self else { return }
+                await self.fetchPage()
             }
 
         case .changeGrouping(let option):
@@ -64,9 +70,10 @@ final class RepoListStore: ObservableObject {
         case .fetchDetails:
             // To fetch the information of languages and stargazers
             detailTask?.cancel()
-            detailTask = Task {
-                let detailMap = await service.fetchDetails(for: state.repositories.filter { $0.stargazersCount == nil })
-                dispatch(.detailsLoaded(detailMap))
+            detailTask = Task { [weak self] in
+                guard let self else { return }
+                let detailMap = await self.gitHubService.fetchDetails(for: state.repositories.filter { $0.stargazersCount == nil })
+                self.dispatch(.detailsLoaded(detailMap))
             }
             
         case .repositoriesLoaded:
@@ -102,7 +109,7 @@ final class RepoListStore: ObservableObject {
             }
             .store(in: &cancellables)
         
-        bookmarkService.bookmarkAddedSubject
+        bookmarkService.bookmarkAdded
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else { return }
@@ -110,7 +117,7 @@ final class RepoListStore: ObservableObject {
             }
             .store(in: &cancellables)
 
-        bookmarkService.bookmarkRemovedSubject
+        bookmarkService.bookmarkRemoved
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else { return }
@@ -118,9 +125,9 @@ final class RepoListStore: ObservableObject {
             }
             .store(in: &cancellables)
         
-        repositoryUpdateService.repositoryEnrichedSubject
-             .receive(on: DispatchQueue.main)
-             .sink { [weak self] repo in
+        repositoryUpdateService.repositoryEnriched
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] repo in
                  guard let self else { return }
                  self.dispatch(.repositoryEnriched(repo))
              }
@@ -128,18 +135,21 @@ final class RepoListStore: ObservableObject {
     }
     
     // MARK: - Private side effects
-    
+
     private func fetchPage() async {
         do {
-            let result = try await (state.nextPageURL == nil)
-                ? service.fetchRepositories()
-                : service.fetchNextRepositories(url: state.nextPageURL!)
+            let result: (repos: [Repository], nextURL: URL?)
+            if let nextURL = state.nextPageURL {
+                result = try await gitHubService.fetchNextRepositories(url: nextURL)
+            } else {
+                result = try await gitHubService.fetchRepositories()
+            }
             dispatch(.repositoriesLoaded(result.repos, nextURL: result.nextURL))
         } catch {
             dispatch(.fetchFailed(error.localizedDescription))
         }
     }
-
+    
     private func triggerDetailFetchIfNeeded() {
         let missing = state.repositories.filter { $0.stargazersCount == nil }
         guard !missing.isEmpty else { return }

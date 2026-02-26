@@ -10,19 +10,20 @@ import Combine
 
 @MainActor
 final class BookmarkListStore: ObservableObject {
-    static let shared = BookmarkListStore()
-
     @Published var state: BookmarkListState = .init()
 
     private var cancellables = Set<AnyCancellable>()
     private let bookmarkService: BookmarkServiceProtocol
 
-    init(bookmarkService: BookmarkServiceProtocol? = nil) {
-        self.bookmarkService = bookmarkService ?? BookmarkService.shared
+    init(bookmarkService: BookmarkServiceProtocol) {
+        self.bookmarkService = bookmarkService
         subscribeToService()
-        dispatch(.loadBookmarks)
     }
-
+    
+    deinit {
+        cancellables.removeAll()
+    }
+    
     // MARK: - Dispatch
 
     func dispatch(_ intent: BookmarkListIntent) {
@@ -52,38 +53,5 @@ final class BookmarkListStore: ObservableObject {
                 self?.dispatch(.bookmarksLoaded(repos))
             }
             .store(in: &cancellables)
-
-        bookmarkService.bookmarkRemovedSubject
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] repo in
-                self?.dispatch(.removeBookmark(repo))
-            }
-            .store(in: &cancellables)
-
-        bookmarkService.bookmarkUpdatedSubject
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] repo in
-                self?.dispatch(.updateEnriched([repo]))
-            }
-            .store(in: &cancellables)
     }
-    
-//    // MARK: - Subscribers
-//    
-//    private func subscribeToEvents() {
-//        AppEventBus.shared.events
-//            .receive(on: DispatchQueue.main)
-//            .sink { [weak self] event in
-//                guard let self else { return }
-//                
-//                switch event {
-//                case .bookmarkToggled(let repo, let isBookmarked):
-//                    dispatch(isBookmarked ? .bookmark(repo) : .removeBookmark(repo))
-//                    
-//                case .repositoryEnriched(let repo):
-//                    dispatch(.updateEnriched([repo]))
-//                }
-//            }
-//            .store(in: &cancellables)
-//    }
 }

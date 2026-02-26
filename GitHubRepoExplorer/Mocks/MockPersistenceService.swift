@@ -5,25 +5,37 @@
 //  Created by Meng Li on 25/02/2026.
 //
 
+@MainActor
 final class MockPersistenceService: PersistenceServiceProtocol {
-
-    private(set) var storage: [Repository] = []
+    var storedRepos: [Repository] = []
+    var addCalled = false
+    var removeCalled = false
+    var updateCalled = false
+    var deleteAllCalled = false
 
     func add(_ repo: Repository) throws {
-        guard !storage.contains(where: { $0.id == repo.id }) else { return }
-        storage.insert(repo, at: 0)
+        addCalled = true
+        storedRepos.append(repo)
     }
 
     func remove(_ repo: Repository) throws {
-        storage.removeAll { $0.id == repo.id }
+        removeCalled = true
+        storedRepos.removeAll { $0.id == repo.id }
     }
 
     func update(_ repo: Repository) throws {
-        guard let index = storage.firstIndex(where: { $0.id == repo.id }) else { return }
-        storage[index] = repo
+        updateCalled = true
+        if let index = storedRepos.firstIndex(where: { $0.id == repo.id }) {
+            storedRepos[index] = repo
+        }
     }
 
-    func loadAllRepos() throws -> [Repository] { storage }
+    func loadAllRepos() throws -> [Repository] {
+        storedRepos
+    }
 
-    func deleteAllRepos() throws { storage.removeAll() }
+    func deleteAllRepos() throws {
+        deleteAllCalled = true
+        storedRepos.removeAll()
+    }
 }

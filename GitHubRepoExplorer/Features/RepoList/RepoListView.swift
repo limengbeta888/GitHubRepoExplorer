@@ -229,7 +229,7 @@ struct RepoListView: View {
 // MARK: - Preview
 
 #Preview("Loaded") {
-    let store = RepoListStore(service: MockGitHubService())
+    let store = RepoListStore(gitHubService: MockGitHubService())
     return NavigationStack {
         RepoListView(store: store)
     }
@@ -237,14 +237,14 @@ struct RepoListView: View {
 
 #Preview("Loading") {
     let gitHubService = MockGitHubService(behaviour: .success, sleepMillis: 10000)
-    let store = RepoListStore(service: gitHubService)
+    let store = RepoListStore(gitHubService: gitHubService)
     return NavigationStack {
         RepoListView(store: store)
     }
 }
 
 #Preview("Error") {
-    let store = RepoListStore(service: MockGitHubService(behaviour: .networkError))
+    let store = RepoListStore(gitHubService: MockGitHubService(behaviour: .networkError))
     return NavigationStack {
         RepoListView(store: store)
     }
