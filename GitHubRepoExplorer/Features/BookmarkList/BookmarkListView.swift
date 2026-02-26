@@ -46,7 +46,7 @@ struct BookmarkListView: View {
     private var repoList: some View {
         List {
             ForEach(state.bookmarkedRepos) { repo in
-                NavigationLink(destination: RepoDetailView(store: RepoDetailStore(repo: repo))) {
+                NavigationLink(destination: RepoDetailView(store: RepoDetailStore(repo: repo, container: store.container))) {
                     RepoRowView(repo: repo,
                                 isBookmarked: .constant(true))
                 }
@@ -57,10 +57,12 @@ struct BookmarkListView: View {
                         Label("Remove", systemImage: "bookmark.slash")
                     }
                 }
+                .accessibilityIdentifier("repo_row")
             }
         }
         .listStyle(.insetGrouped)
         .animation(.default, value: state.bookmarkedRepos.map(\.id))
+        .accessibilityIdentifier("bookmark_list")
     }
     
     // MARK: - Hint
@@ -78,14 +80,25 @@ struct BookmarkListView: View {
 }
 
 #Preview("Has bookmarks") {
-    let store = BookmarkListStore(bookmarkService: MockBookmarkService(behaviour: .hasBookmarks))
+    let container = DependencyContainer()
+    container.register(githubService: MockGitHubService(),
+                       bookmarkService: MockBookmarkService(behaviour: .hasBookmarks),
+                       repositoryUpdateService: MockRepositoryUpdateService())
+    let store = BookmarkListStore(container: container)
+    
     return NavigationStack {
         BookmarkListView(store: store)
     }
 }
 
 #Preview("Empty") {
-    NavigationStack {
-        BookmarkListView(store: BookmarkListStore(bookmarkService: MockBookmarkService(behaviour: .noBookmarks)))
+    let container = DependencyContainer()
+    container.register(githubService: MockGitHubService(),
+                       bookmarkService: MockBookmarkService(behaviour: .noBookmarks),
+                       repositoryUpdateService: MockRepositoryUpdateService())
+    let store = BookmarkListStore(container: container)
+
+    return NavigationStack {
+        BookmarkListView(store: store)
     }
 }

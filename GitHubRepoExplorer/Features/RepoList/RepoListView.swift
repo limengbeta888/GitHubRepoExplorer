@@ -105,7 +105,7 @@ struct RepoListView: View {
                 Section {
                     if !state.collapsedGroups.contains(group.key) {
                         ForEach(group.repos) { repo in
-                            NavigationLink(destination: RepoDetailView(store: RepoDetailStore(repo: repo))) {
+                            NavigationLink(destination: RepoDetailView(store: RepoDetailStore(repo: repo, container: store.container))) {
                                 RepoRowView(repo: repo,
                                             isBookmarked: Binding(
                                                 get: {
@@ -119,6 +119,7 @@ struct RepoListView: View {
                             .swipeActions(edge: .trailing) {
                                 bookmarkSwipeButton(for: repo)
                             }
+                            .accessibilityLabel(repo.name)
                         }
                     }
                 } header: {
@@ -147,12 +148,15 @@ struct RepoListView: View {
                     }
                     .buttonStyle(.plain)
                 }
+                .accessibilityIdentifier("group_header")
+                .accessibilityLabel("\(group.key), \(group.repos.count)")
             }
             
             // Always rendered — completely independent of section collapse state
             paginationFooter
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier("repo_list")
     }
 
     // MARK: - Toolbar
@@ -229,22 +233,36 @@ struct RepoListView: View {
 // MARK: - Preview
 
 #Preview("Loaded") {
-    let store = RepoListStore(gitHubService: MockGitHubService())
+    let container = DependencyContainer()
+    container.register(githubService: MockGitHubService(),
+                       bookmarkService: MockBookmarkService(),
+                       repositoryUpdateService: MockRepositoryUpdateService())
+    let store = RepoListStore(container: container)
+    
     return NavigationStack {
         RepoListView(store: store)
     }
 }
 
 #Preview("Loading") {
-    let gitHubService = MockGitHubService(behaviour: .success, sleepMillis: 10000)
-    let store = RepoListStore(gitHubService: gitHubService)
+    let container = DependencyContainer()
+    container.register(githubService: MockGitHubService(behaviour: .success, sleepMillis: 10000),
+                       bookmarkService: MockBookmarkService(),
+                       repositoryUpdateService: MockRepositoryUpdateService())
+    let store = RepoListStore(container: container)
+    
     return NavigationStack {
         RepoListView(store: store)
     }
 }
 
 #Preview("Error") {
-    let store = RepoListStore(gitHubService: MockGitHubService(behaviour: .networkError))
+    let container = DependencyContainer()
+    container.register(githubService: MockGitHubService(behaviour: .networkError),
+                       bookmarkService: MockBookmarkService(),
+                       repositoryUpdateService: MockRepositoryUpdateService())
+    let store = RepoListStore(container: container)
+    
     return NavigationStack {
         RepoListView(store: store)
     }

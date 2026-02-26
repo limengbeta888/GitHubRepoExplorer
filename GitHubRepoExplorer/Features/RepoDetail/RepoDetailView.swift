@@ -129,6 +129,7 @@ struct RepoDetailView: View {
             }
             .buttonStyle(.borderedProminent)
             .padding(.horizontal)
+            .accessibilityLabel("Open on GitHub")
         }
     }
 
@@ -143,6 +144,8 @@ struct RepoDetailView: View {
                 Image(systemName: state.isBookmarked ? "bookmark.fill" : "bookmark")
             }
             .tint(state.isBookmarked ? .yellow : .gray)
+            .accessibilityIdentifier(
+                state.isBookmarked ? "bookmark_fill_button" : "bookmark_button")
         }
     }
 }
@@ -150,23 +153,38 @@ struct RepoDetailView: View {
 // MARK: - Preview
 
 #Preview("Detail loaded") {
-    let store = RepoDetailStore(repo: .mockOrgRepo)
+    let container = DependencyContainer()
+    container.register(githubService: MockGitHubService(),
+                       bookmarkService: MockBookmarkService(),
+                       repositoryUpdateService: MockRepositoryUpdateService())
+    let store = RepoDetailStore(repo: .mockOrgRepo,
+                                container: container)
     return NavigationStack {
         RepoDetailView(store: store)
     }
 }
 
 #Preview("Pending fetch") {
-    let gitHubService = MockGitHubService(behaviour: .success, sleepMillis: 10000)
-    let store = RepoDetailStore(repo: .mockOriginal, githubService: gitHubService)
+    let container = DependencyContainer()
+    container.register(githubService: MockGitHubService(behaviour: .success, sleepMillis: 10000),
+                       bookmarkService: MockBookmarkService(),
+                       repositoryUpdateService: MockRepositoryUpdateService())
+    
+    let store = RepoDetailStore(repo: .mockOrgRepo,
+                                container: container)
     return NavigationStack {
         RepoDetailView(store: store)
     }
 }
 
 #Preview("Error") {
-    let store = RepoDetailStore(repo: .mockOriginal,
-                                githubService: MockGitHubService(behaviour: .networkError))
+    let container = DependencyContainer()
+    container.register(githubService: MockGitHubService(behaviour: .networkError, sleepMillis: 10000),
+                       bookmarkService: MockBookmarkService(),
+                       repositoryUpdateService: MockRepositoryUpdateService())
+    
+    let store = RepoDetailStore(repo: .mockOrgRepo,
+                                container: container)
     return NavigationStack {
         RepoDetailView(store: store)
     }

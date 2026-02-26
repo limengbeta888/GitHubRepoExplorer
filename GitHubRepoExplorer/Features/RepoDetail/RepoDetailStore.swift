@@ -12,31 +12,22 @@ import Combine
 final class RepoDetailStore: ObservableObject {
     @Published var state: RepoDetailState
 
-    private var detailTask: Task<Void, Never>?
-    
     private let githubService: GitHubServiceProtocol
     private let bookmarkService: BookmarkServiceProtocol
     private let repositoryUpdateService: RepositoryUpdateServiceProtocol
     
+    private var detailTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
     
-    // nil defaults resolved inside init — avoids referencing actor-isolated
-    // state in a nonisolated default argument expression.
-    init(
-        repo: Repository,
-        githubService: GitHubServiceProtocol? = nil,
-        bookmarkService: BookmarkServiceProtocol? = nil,
-        repositoryUpdateService: RepositoryUpdateServiceProtocol? = nil
-    ) {
+    init(repo: Repository, container: DependencyContainer) {
         self.state = RepoDetailState(repository: repo)
-        self.githubService = githubService ?? GitHubService.shared
-        self.bookmarkService = bookmarkService ?? BookmarkService.shared
-        self.repositoryUpdateService = repositoryUpdateService ?? RepositoryUpdateService.shared
+        self.githubService = container.retrieve(.github) as! GitHubServiceProtocol
+        self.bookmarkService = container.retrieve(.bookmark) as! BookmarkServiceProtocol
+        self.repositoryUpdateService = container.retrieve(.repositoryUpdate) as! RepositoryUpdateServiceProtocol
         
         subscribeToService(repo: repo)
         
-        let bookmarkSvc = bookmarkService ?? BookmarkService.shared
-        let isBookmarked = bookmarkSvc.cachedBookmarkedIDs.contains(repo.id)
+        let isBookmarked = bookmarkService.cachedBookmarkedIDs.contains(repo.id)
         dispatch(.syncBookmark(isBookmarked: isBookmarked))
     }
 

@@ -13,6 +13,7 @@ import SwiftUI
 final class RepoListStore: ObservableObject {
     @Published private(set) var state = RepoListState()
 
+    let container: DependencyContainer
     private let gitHubService: GitHubServiceProtocol
     private let bookmarkService: BookmarkServiceProtocol
     private let repositoryUpdateService: RepositoryUpdateServiceProtocol
@@ -22,16 +23,11 @@ final class RepoListStore: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     
-    // nil defaults resolved inside init — avoids referencing actor-isolated
-    // state in a nonisolated default argument expression.
-    init(
-        gitHubService: GitHubServiceProtocol? = nil,
-        bookmarkService: BookmarkServiceProtocol? = nil,
-        repositoryUpdateService: RepositoryUpdateServiceProtocol? = nil
-    ) {
-        self.gitHubService = gitHubService ?? GitHubService.shared
-        self.bookmarkService = bookmarkService ?? BookmarkService.shared
-        self.repositoryUpdateService = repositoryUpdateService ?? RepositoryUpdateService.shared
+    init(container: DependencyContainer) {
+        self.container = container
+        self.gitHubService = container.retrieve(.github) as! GitHubServiceProtocol
+        self.bookmarkService = container.retrieve(.bookmark) as! BookmarkServiceProtocol
+        self.repositoryUpdateService = container.retrieve(.repositoryUpdate) as! RepositoryUpdateServiceProtocol
         
         subscribeToService()
     }

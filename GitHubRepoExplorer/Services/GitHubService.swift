@@ -41,6 +41,7 @@ class GitHubService: GitHubServiceProtocol {
     private let config: GitHubAPIConfig
     private let cache = DetailCache()
 
+    // Since we need to test this service in unit tests, init methon should not be private
     init(
         client: NetworkClientProtocol = NetworkClient(),
         config: GitHubAPIConfig = GitHubAPIConfig()

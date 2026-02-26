@@ -22,6 +22,9 @@ final class RepositoryUpdateService: RepositoryUpdateServiceProtocol {
     private let repositoryEnrichedSubject = PassthroughSubject<Repository, Never>()
     private let repositoriesEnrichedSubject = PassthroughSubject<[Repository], Never>()
 
+    // Since we need to test this service in unit tests, init methon should not be private
+    init() {}
+    
     var repositoryEnriched: AnyPublisher<Repository, Never> {
         repositoryEnrichedSubject.eraseToAnyPublisher()
     }

@@ -47,6 +47,7 @@ final class BookmarkService: BookmarkServiceProtocol {
     private let repositoryUpdateService: RepositoryUpdateServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     
+    // Since we need to test this service in unit tests, init methon should not be private
     init(persistence: PersistenceServiceProtocol? = nil,
          repositoryUpdateService: RepositoryUpdateServiceProtocol? = nil) {
         

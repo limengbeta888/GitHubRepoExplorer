@@ -69,6 +69,8 @@ struct RepoRowView: View {
             }
         }
         .padding(.vertical, 4)
+        .accessibilityIdentifier("repo_row")
+        .accessibilityLabel(repo.name)
     }
 }
 

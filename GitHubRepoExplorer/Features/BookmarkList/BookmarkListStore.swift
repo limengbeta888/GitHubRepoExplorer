@@ -12,11 +12,19 @@ import Combine
 final class BookmarkListStore: ObservableObject {
     @Published var state: BookmarkListState = .init()
 
-    private var cancellables = Set<AnyCancellable>()
+    let container: DependencyContainer
+    private let gitHubService: GitHubServiceProtocol
     private let bookmarkService: BookmarkServiceProtocol
+    private let repositoryUpdateService: RepositoryUpdateServiceProtocol
+    
+    private var cancellables = Set<AnyCancellable>()
 
-    init(bookmarkService: BookmarkServiceProtocol? = nil) {
-        self.bookmarkService = bookmarkService ?? BookmarkService.shared
+    init(container: DependencyContainer) {
+        self.container = container
+        self.gitHubService = container.retrieve(.github) as! GitHubServiceProtocol
+        self.bookmarkService = container.retrieve(.bookmark) as! BookmarkServiceProtocol
+        self.repositoryUpdateService = container.retrieve(.repositoryUpdate) as! RepositoryUpdateServiceProtocol
+        
         subscribeToService()
     }
     

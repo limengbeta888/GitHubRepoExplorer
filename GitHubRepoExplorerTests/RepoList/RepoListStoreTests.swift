@@ -31,10 +31,15 @@ final class RepoListStoreTests: XCTestCase {
         bookmarkService: MockBookmarkService? = nil,
         repositoryUpdateService: MockRepositoryUpdateService? = nil
     ) -> RepoListStore {
-        RepoListStore(
-            gitHubService: gitHubService ?? MockGitHubService(behaviour: .success, sleepMillis: 0),
+        let container = DependencyContainer()
+        container.register(
+            githubService: gitHubService ?? MockGitHubService(behaviour: .success, sleepMillis: 0),
             bookmarkService: bookmarkService ?? MockBookmarkService(behaviour: .noBookmarks),
             repositoryUpdateService: repositoryUpdateService ?? MockRepositoryUpdateService()
+        )
+        
+        return RepoListStore(
+            container: container
         )
     }
 

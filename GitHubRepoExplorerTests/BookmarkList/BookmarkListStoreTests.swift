@@ -15,9 +15,15 @@ final class BookmarkListStoreTests: XCTestCase {
     // MARK: - Helpers
     
     private func makeStore(withBehaviour behaviour: MockBookmarkService.Behaviour) -> (BookmarkListStore, MockBookmarkService) {
-        let service = MockBookmarkService(behaviour: behaviour)
-        let store = BookmarkListStore(bookmarkService: service)
-        return (store, service)
+        let bookmarkService = MockBookmarkService(behaviour: behaviour)
+        let container = DependencyContainer()
+        container.register(
+            githubService: MockGitHubService(behaviour: .success, sleepMillis: 0),
+            bookmarkService: bookmarkService,
+            repositoryUpdateService:  MockRepositoryUpdateService()
+        )
+        let store = BookmarkListStore(container: container)
+        return (store, bookmarkService)
     }
     
     // Helper to wait for state changes in the store
@@ -32,7 +38,14 @@ final class BookmarkListStoreTests: XCTestCase {
     @MainActor
     func test_loadBookmarks_whenHasBookmarks_updatesState() async {
         let mockService = MockBookmarkService(behaviour: .hasBookmarks)
-        let store = BookmarkListStore(bookmarkService: mockService)
+        
+        let container = DependencyContainer()
+        container.register(
+            githubService: MockGitHubService(behaviour: .success, sleepMillis: 0),
+            bookmarkService: mockService,
+            repositoryUpdateService:  MockRepositoryUpdateService()
+        )
+        let store = BookmarkListStore(container: container)
 
         // Dispatch loads bookmarks (sends through Combine)
         store.dispatch(.loadBookmarks)

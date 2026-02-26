@@ -19,6 +19,13 @@
         "identifier" : "9757E5F42F4BD6E4000BB0CC",
         "name" : "GitHubRepoExplorerTests"
       }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:GitHubRepoExplorer.xcodeproj",
+        "identifier" : "9757E5FE2F4BD6E4000BB0CC",
+        "name" : "GitHubRepoExplorerUITests"
+      }
     }
   ],
   "version" : 1

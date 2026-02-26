@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var repoListStore = RepoListStore()
-    @StateObject private var bookmarkListStore = BookmarkListStore()
+    @StateObject private var repoListStore = RepoListStore(container: AppDelegate.container)
+    @StateObject private var bookmarkListStore = BookmarkListStore(container: AppDelegate.container)
     
     var body: some View {
         TabView {

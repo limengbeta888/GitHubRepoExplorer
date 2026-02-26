@@ -60,11 +60,17 @@ final class RepoDetailStoreTests: XCTestCase {
         bookmarkService: MockBookmarkService? = nil,
         repositoryUpdateService: MockRepositoryUpdateService? = nil
     ) -> RepoDetailStore {
-        RepoDetailStore(
-            repo: repo ?? createOriginalRepo(),
+        
+        let container = DependencyContainer()
+        container.register(
             githubService: service ?? MockGitHubService(behaviour: .success, sleepMillis: 0),
-            bookmarkService: bookmarkService ?? MockBookmarkService(repos: createRepos()),
+            bookmarkService: bookmarkService ?? MockBookmarkService(behaviour: .noBookmarks),
             repositoryUpdateService: repositoryUpdateService ?? MockRepositoryUpdateService()
+        )
+        
+        return RepoDetailStore(
+            repo: repo ?? createOriginalRepo(),
+            container: container
         )
     }
     
@@ -145,7 +151,7 @@ final class RepoDetailStoreTests: XCTestCase {
     func test_loadDetail_isSkipped_whenRepoAlreadyEnriched() async throws {
         store = makeStore(repo: createForkRepo())
         store.dispatch(.loadDetail)
-        try await Task.yield() // allow async tasks to run
+        await Task.yield() // allow async tasks to run
         XCTAssertEqual(store.state.phase, .loaded)
     }
 
