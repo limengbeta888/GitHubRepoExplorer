@@ -15,8 +15,8 @@ final class BookmarkListStore: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let bookmarkService: BookmarkServiceProtocol
 
-    init(bookmarkService: BookmarkServiceProtocol) {
-        self.bookmarkService = bookmarkService
+    init(bookmarkService: BookmarkServiceProtocol? = nil) {
+        self.bookmarkService = bookmarkService ?? BookmarkService.shared
         subscribeToService()
     }
     

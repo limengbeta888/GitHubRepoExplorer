@@ -1,0 +1,25 @@
+{
+  "configurations" : [
+    {
+      "id" : "A73C54E0-3458-413F-BD0E-CDC602408054",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:GitHubRepoExplorer.xcodeproj",
+        "identifier" : "9757E5F42F4BD6E4000BB0CC",
+        "name" : "GitHubRepoExplorerTests"
+      }
+    }
+  ],
+  "version" : 1
+}

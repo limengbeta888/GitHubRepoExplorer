@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var repoListStore = RepoListStore()
-    @StateObject private var bookmarkListStore = BookmarkListStore(bookmarkService: BookmarkService.shared)
+    @StateObject private var bookmarkListStore = BookmarkListStore()
     
     var body: some View {
         TabView {

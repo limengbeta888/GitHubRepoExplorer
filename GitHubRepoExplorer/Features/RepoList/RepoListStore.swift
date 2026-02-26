@@ -80,6 +80,7 @@ final class RepoListStore: ObservableObject {
             if state.groupingOption.requiresDetail {
                 triggerDetailFetchIfNeeded()
             }
+            dispatch(.syncBookmark(bookmarkService.cachedBookmarkedIDs))
 
         case .detailsLoaded(let detailMap):
             // Enrich any persisted bookmarks that just received stars/language
