@@ -1,0 +1,146 @@
+# ==================================================
+# macOS
+# ==================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+
+# ==================================================
+# Xcode
+# ==================================================
+build/
+*.ipa
+*.dSYM.zip
+DerivedData/
+
+# Certificates (NEVER commit these — use Match)
+*.p12
+*.p8
+*.cer
+*.mobileprovision
+
+# Per-user Xcode data (should NOT be committed)
+*.xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcworkspace/project.xcworkspace/xcuserdata/
+
+# Xcode user state
+*.xcuserstate
+
+# Xcode SCM / checkout metadata
+*.xccheckout
+*.xcscmblueprint
+
+# Keep shared Xcode data (schemes, CI, etc.)
+!*.xcodeproj/xcshareddata/
+!*.xcworkspace/xcshareddata/
+
+# SwiftUI previews
+*.preview-thumbnails/
+
+# ==================================================
+# Swift Package Manager
+# ==================================================
+.build/
+Packages/
+
+# Commit or ignore based on team preference
+Package.resolved
+
+# ==================================================
+# CocoaPods
+# ==================================================
+Pods/
+*.xcworkspace
+
+# ==================================================
+# Carthage
+# ==================================================
+Carthage/Build/
+
+# ==================================================
+# Fastlane
+# ==================================================
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+fastlane/AuthKey.p8
+fastlane/README.md
+fastlane/logs
+
+
+# ==================================================
+# Code Coverage
+# ==================================================
+*.profdata
+*.gcno
+*.gcda
+
+# ==================================================
+# Logs & Temp Files
+# ==================================================
+*.log
+tmp/
+*.swp
+
+# ==================================================
+# Environment / Secrets
+# ==================================================
+Secrets.xcconfig
+NZTracksCompanion/Helpers/Secrets.swift
+.env
+.env.*
+
+# ==================================================
+# Playgrounds
+# ==================================================
+timeline.xctimeline
+playground.xcworkspace
+
+# ==================================================
+# Crash Reports
+# ==================================================
+*.crash
+*.dSYM
+*.dSYM.zip
+
+# ==================================================
+# Xcode Cloud
+# ==================================================
+.xcodecloud/
+
+# ==================================================
+# SwiftLint
+# ==================================================
+# .swiftlint.yml
+
+# ==================================================
+# Archives / Builds
+# ==================================================
+*.ipa
+
+# ==================================================
+# BuildTools
+# ==================================================
+BuildTools/.build
+BuildTools/.swiftpm
+
+# ==================================================
+# Scripts
+# ==================================================
+Scripts/test_fastlane.sh
+
+# ==================================================
+# AI Agents
+# ==================================================
+.gemini/
+GEMINI.md
+
+# ==================================================
+# Others
+# ==================================================
+Business_Requirements.md
