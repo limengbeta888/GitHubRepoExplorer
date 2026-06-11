@@ -120,7 +120,9 @@ struct RepoListView: View {
                     }
                 } header: {
                     Button {
-                        viewModel.toggleGroup(group.key)
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            viewModel.toggleGroup(group.key)
+                        }
                     } label: {
                         HStack {
                             Text(group.key).font(.headline)

@@ -15,7 +15,7 @@ struct RepoInfoCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(spacing: 6) {
                 Image(systemName: icon)
                     .foregroundStyle(color)
                 

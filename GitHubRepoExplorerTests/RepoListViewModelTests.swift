@@ -8,18 +8,31 @@
 import Testing
 import Foundation
 import Combine
+import SwiftUI
 @testable import GitHubRepoExplorer
 
 @MainActor
+@Suite("RepoListViewModel Tests")
 struct RepoListViewModelTests {
     
-    private func setupContainer() -> DependencyContainer {
+    private func setupContainer(behaviour: MockGitHubService.Behaviour = .success) -> DependencyContainer {
         let container = DependencyContainer(
-            githubService: MockGitHubService(behaviour: .success),
+            githubService: MockGitHubService(behaviour: behaviour),
             bookmarkService: MockBookmarkService(behaviour: .noBookmarks),
             repositoryUpdateService: MockRepositoryUpdateService()
         )
         return container
+    }
+
+    @Test("Initial state is correct")
+    func initialState() {
+        let container = setupContainer()
+        let coordinator = RepoCoordinator(container: container)
+        let viewModel = RepoListViewModel(container: container, coordinator: coordinator)
+        
+        #expect(viewModel.phase == .idle)
+        #expect(viewModel.repositories.isEmpty)
+        #expect(viewModel.collapsedGroups.isEmpty)
     }
 
     @Test("Load initial repositories successfully")
@@ -28,12 +41,11 @@ struct RepoListViewModelTests {
         let coordinator = RepoCoordinator(container: container)
         let viewModel = RepoListViewModel(container: container, coordinator: coordinator)
         
-        #expect(viewModel.phase == .idle)
-        
         viewModel.loadInitial()
         #expect(viewModel.phase == .loadingInitial)
         
-        try await viewModel.waitForPhase(.loaded)
+        // Await the internal task instead of sleeping
+        await viewModel.fetchTask?.value
         
         #expect(viewModel.phase == .loaded)
         #expect(!viewModel.repositories.isEmpty)
@@ -42,19 +54,17 @@ struct RepoListViewModelTests {
 
     @Test("Load initial repositories failure")
     func loadInitialFailure() async throws {
-        let container = setupContainer()
-        container.register(githubService: MockGitHubService(behaviour: .networkError))
+        let container = setupContainer(behaviour: .networkError)
         let coordinator = RepoCoordinator(container: container)
         let viewModel = RepoListViewModel(container: container, coordinator: coordinator)
         
         viewModel.loadInitial()
-        
-        try await viewModel.waitForPhase { if case .error = $0 { return true }; return false }
+        await viewModel.fetchTask?.value
         
         if case .error(let msg) = viewModel.phase {
             #expect(!msg.isEmpty)
         } else {
-            Issue.record("Expected error phase")
+            Issue.record("Expected error phase, but got \(viewModel.phase)")
         }
     }
 
@@ -64,34 +74,113 @@ struct RepoListViewModelTests {
         let coordinator = RepoCoordinator(container: container)
         let viewModel = RepoListViewModel(container: container, coordinator: coordinator)
         
+        // 1. Load initial
         viewModel.loadInitial()
-        try await viewModel.waitForPhase(.loaded)
+        await viewModel.fetchTask?.value
+        #expect(viewModel.phase == .loaded)
         
+        // 2. Change grouping to language (requires details)
         viewModel.changeGrouping(.language)
         
+        // Assignment of phase = .fetchingDetails happens synchronously on MainActor
         #expect(viewModel.phase == .fetchingDetails)
-        try await viewModel.waitForPhase(.loaded)
+        
+        // 3. Await the detail fetch task
+        await viewModel.detailTask?.value
         #expect(viewModel.phase == .loaded)
     }
-}
 
-// MARK: - Helpers
-
-extension RepoListViewModel {
-    func waitForPhase(_ expectedPhase: RepoListViewModel.Phase) async throws {
-        try await waitForPhase { $0 == expectedPhase }
+    @Test("Load more repositories successfully")
+    func loadMoreSuccess() async throws {
+        let container = setupContainer()
+        let coordinator = RepoCoordinator(container: container)
+        let viewModel = RepoListViewModel(container: container, coordinator: coordinator)
+        
+        // 1. Initial load
+        viewModel.loadInitial()
+        await viewModel.fetchTask?.value
+        let initialCount = viewModel.repositories.count
+        
+        // 2. Load more
+        #expect(viewModel.hasMorePages)
+        viewModel.loadMore()
+        #expect(viewModel.phase == .loadingMore)
+        
+        await viewModel.fetchTask?.value
+        #expect(viewModel.repositories.count > initialCount)
+        #expect(viewModel.phase == .loaded)
     }
-    
-    func waitForPhase(_ condition: @escaping (RepoListViewModel.Phase) -> Bool) async throws {
-        let timeout = Date().addingTimeInterval(2.0)
-        while !condition(self.phase) && Date() < timeout {
-            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+
+    @Test("Toggle group collapse/expand")
+    func toggleGroup() async throws {
+        let container = setupContainer()
+        let coordinator = RepoCoordinator(container: container)
+        let viewModel = RepoListViewModel(container: container, coordinator: coordinator)
+        
+        viewModel.loadInitial()
+        await viewModel.fetchTask?.value
+        
+        guard let firstGroup = viewModel.groupedRepositories.first?.key else {
+            Issue.record("No groups found")
+            return
         }
         
-        if !condition(self.phase) {
-            throw TimeoutError()
-        }
+        #expect(!viewModel.collapsedGroups.contains(firstGroup))
+        
+        viewModel.toggleGroup(firstGroup)
+        #expect(viewModel.collapsedGroups.contains(firstGroup))
+        
+        viewModel.toggleGroup(firstGroup)
+        #expect(!viewModel.collapsedGroups.contains(firstGroup))
     }
-    
-    struct TimeoutError: Error {}
+
+    @Test("Toggle bookmark updates local state and service")
+    func toggleBookmark() async throws {
+        let container = setupContainer()
+        let coordinator = RepoCoordinator(container: container)
+        let viewModel = RepoListViewModel(container: container, coordinator: coordinator)
+        
+        viewModel.loadInitial()
+        await viewModel.fetchTask?.value
+        
+        let repo = viewModel.repositories[0]
+        #expect(!viewModel.bookmarkedIDs.contains(repo.id))
+        
+        // Add bookmark
+        viewModel.toggleBookmark(repo, isBookmarked: true)
+        #expect(viewModel.bookmarkedIDs.contains(repo.id))
+        #expect(container.bookmarkService.cachedBookmarkedIDs.contains(repo.id))
+        
+        // Remove bookmark
+        viewModel.toggleBookmark(repo, isBookmarked: false)
+        #expect(!viewModel.bookmarkedIDs.contains(repo.id))
+        #expect(!container.bookmarkService.cachedBookmarkedIDs.contains(repo.id))
+    }
+
+    @Test("Reactive update from repository enrichment service")
+    func reactiveEnrichmentUpdate() async throws {
+        let container = setupContainer()
+        let coordinator = RepoCoordinator(container: container)
+        let viewModel = RepoListViewModel(container: container, coordinator: coordinator)
+        
+        viewModel.loadInitial()
+        await viewModel.fetchTask?.value
+        
+        let repo = viewModel.repositories[0]
+        #expect(repo.stargazersCount == nil)
+        
+        // Simulate external enrichment
+        let enrichedRepo = repo.merging(detail: RepositoryDetail.mockBasic)
+        container.repositoryUpdateService.publishEnrichment(enrichedRepo)
+        
+        // The Combine subscription updates the array synchronously on the main thread 
+        // because of .receive(on: DispatchQueue.main) it might be pushed to the next runloop.
+        // However, we can use Task.yield() or a very short wait to be safe, 
+        // but better is to ensure it is handled.
+        
+        // Let's wait for the next main actor cycle
+        await Task.yield()
+        
+        #expect(viewModel.repositories[0].stargazersCount == RepositoryDetail.mockBasic.stargazersCount)
+    }
 }

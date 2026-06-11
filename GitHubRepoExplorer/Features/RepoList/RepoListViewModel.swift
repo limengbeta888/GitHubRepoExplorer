@@ -13,7 +13,6 @@ import SwiftUI
 @MainActor
 final class RepoListViewModel {
     var repositories: [Repository] = []
-    var nextPageURL: URL? = nil
     var groupingOption: GroupingOption = .ownerType
     var phase: Phase = .idle
     var collapsedGroups: Set<String> = []
@@ -28,13 +27,15 @@ final class RepoListViewModel {
         case error(String)
     }
 
+    private(set) var nextPageURL: URL? = nil
+    
     private let gitHubService: GitHubServiceProtocol
     private let bookmarkService: BookmarkServiceProtocol
     private let repositoryUpdateService: RepositoryUpdateServiceProtocol
     private weak var coordinator: RepoCoordinator?
     
-    private var fetchTask: Task<Void, Never>?
-    private var detailTask: Task<Void, Never>?
+    @ObservationIgnored var fetchTask: Task<Void, Never>?
+    @ObservationIgnored var detailTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
     
     init(container: DependencyContainer, coordinator: RepoCoordinator) {
@@ -61,10 +62,14 @@ final class RepoListViewModel {
     var groupedRepositories: [(key: String, repos: [Repository])] {
         let dict = Dictionary(grouping: repositories) { repo -> String in
             switch groupingOption {
-            case .ownerType: return repo.ownerTypeName
-            case .forkStatus: return repo.forkStatusName
-            case .language: return repo.languageGroup
-            case .stargazers: return repo.stargazerBand
+            case .ownerType:
+                return repo.ownerTypeName
+            case .forkStatus:
+                return repo.forkStatusName
+            case .language:
+                return repo.languageGroup
+            case .stargazers:
+                return repo.stargazerBand
             }
         }
         
@@ -111,12 +116,10 @@ final class RepoListViewModel {
     }
     
     func toggleGroup(_ key: String) {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            if collapsedGroups.contains(key) {
-                collapsedGroups.remove(key)
-            } else {
-                collapsedGroups.insert(key)
-            }
+        if collapsedGroups.contains(key) {
+            collapsedGroups.remove(key)
+        } else {
+            collapsedGroups.insert(key)
         }
     }
     

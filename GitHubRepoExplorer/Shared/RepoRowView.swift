@@ -49,22 +49,31 @@ struct RepoRowView: View {
                 HStack(spacing: 12) {
                     if detailVisible {
                         if let lang = repo.language {
-                            Label(lang, systemImage: "chevron.left.forwardslash.chevron.right")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                Text(lang)
+                            }
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                         }
                         
                         if let stars = repo.stargazersCount {
-                            Label("\(stars)", systemImage: "star")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                            HStack(spacing: 4) {
+                                Image(systemName: "star")
+                                Text("\(stars)")
+                            }
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                         }
                     }
 
                     if repo.fork {
-                        Label("Fork", systemImage: "arrow.branch")
-                            .font(.caption2)
-                            .foregroundStyle(.orange)
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.branch")
+                            Text("Fork")
+                        }
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
                     }
                 }
             }
