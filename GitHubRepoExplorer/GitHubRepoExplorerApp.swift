@@ -18,6 +18,7 @@ struct GitHubRepoExplorerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(appCoordinator: appCoordinator)
+                .environment(\.dependencyContainer, AppDelegate.container)
                 .onAppear {
                     appCoordinator.start()
                 }
@@ -43,18 +44,16 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
     
     private func registerManagers() {
-        private func registerManagers() {
-            // Dependency Injection
-            if isUITesting {
-                // Note: These would need to be MainActor-isolated or handled carefully
-                AppDelegate.container.register(githubService: UITestGitHubService(),
-                                               bookmarkService: MockBookmarkService(behaviour: .noBookmarks),
-                                               repositoryUpdateService: MockRepositoryUpdateService())
-            } else {
-                AppDelegate.container.register(githubService: GitHubService.shared,
-                                               bookmarkService: BookmarkService.shared,
-                                               repositoryUpdateService: RepositoryUpdateService.shared)
-            }
+        // Dependency Injection
+        if isUITesting {
+            // Note: These would need to be MainActor-isolated or handled carefully
+            AppDelegate.container.register(githubService: UITestGitHubService(),
+                                           bookmarkService: MockBookmarkService(behaviour: .noBookmarks),
+                                           repositoryUpdateService: MockRepositoryUpdateService())
+        } else {
+            AppDelegate.container.register(githubService: GitHubService.shared,
+                                           bookmarkService: BookmarkService.shared,
+                                           repositoryUpdateService: RepositoryUpdateService.shared)
         }
     }
 }
