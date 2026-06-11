@@ -28,7 +28,7 @@ final class RepoDetailViewModel {
     private let bookmarkService: BookmarkServiceProtocol
     private let repositoryUpdateService: RepositoryUpdateServiceProtocol
     
-    private var detailTask: Task<Void, Never>?
+    @ObservationIgnored var detailTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
     
     init(repository: Repository, container: DependencyContainer) {
@@ -45,7 +45,11 @@ final class RepoDetailViewModel {
     }
     
     func loadDetail() {
-        guard repository.stargazersCount == nil, phase != .loadingDetail else { return }
+        guard repository.stargazersCount == nil,
+              phase != .loadingDetail else {
+            return
+        }
+        
         phase = .loadingDetail
         
         detailTask?.cancel()
