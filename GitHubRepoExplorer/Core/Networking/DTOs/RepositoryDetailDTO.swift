@@ -5,6 +5,8 @@
 //  Created by Meng Li on 10/06/2026.
 //
 
+/// Full response schema: https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository
+
 import Foundation
 
 struct RepositoryDetailDTO: Codable {
@@ -20,15 +22,5 @@ struct RepositoryDetailDTO: Codable {
         case forksCount      = "forks_count"
         case openIssuesCount = "open_issues_count"
         case updatedAt       = "updated_at"
-    }
-
-    func toDomain() -> RepositoryDetail {
-        RepositoryDetail(
-            stargazersCount: stargazersCount,
-            language: language,
-            forksCount: forksCount,
-            openIssuesCount: openIssuesCount,
-            updatedAt: updatedAt
-        )
     }
 }

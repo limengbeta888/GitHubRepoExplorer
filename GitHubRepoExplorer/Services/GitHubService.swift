@@ -24,7 +24,6 @@ class GitHubService: GitHubServiceProtocol {
     static let shared = GitHubService()
 
     private let client: NetworkClientProtocol
-    private let config: GitHubAPIConfig
     private let persistence: PersistenceServiceProtocol
     
     /// Cache expiry time (1 hour)
@@ -33,11 +32,9 @@ class GitHubService: GitHubServiceProtocol {
     // Since we need to test this service in unit tests, init methon should not be private
     init(
         client: NetworkClientProtocol = NetworkClient(),
-        config: GitHubAPIConfig = GitHubAPIConfig(),
         persistence: PersistenceServiceProtocol = PersistenceService.shared
     ) {
         self.client = client
-        self.config = config
         self.persistence = persistence
     }
     
@@ -45,9 +42,9 @@ class GitHubService: GitHubServiceProtocol {
 
     func fetchRepositories() async throws -> (repos: [Repository], nextURL: URL?) {
         let response: NetworkResponse<[RepositoryDTO]> = try await client.requestWithResponse(
-            endpoint: PublicReposEndpoint.repositories(config)
+            endpoint: PublicReposEndpoint.repositories
         )
-        let domainRepos = response.body.map { $0.toDomain() }
+        let domainRepos = response.body.map { mapToDomain($0) }
         return (domainRepos, response.nextPageURL)
     }
 
@@ -55,7 +52,7 @@ class GitHubService: GitHubServiceProtocol {
         let response: NetworkResponse<[RepositoryDTO]> = try await client.requestWithResponse(
             endpoint: PublicReposEndpoint.nextRepositories(url)
         )
-        let domainRepos = response.body.map { $0.toDomain() }
+        let domainRepos = response.body.map { mapToDomain($0) }
         return (domainRepos, response.nextPageURL)
     }
 
@@ -69,9 +66,9 @@ class GitHubService: GitHubServiceProtocol {
         
         // 2. Fetch from network
         let detailDTO: RepositoryDetailDTO = try await client.request(
-            endpoint: PublicReposEndpoint.repositoryDetail(fullName: repo.fullName, config: config)
+            endpoint: PublicReposEndpoint.repositoryDetail(fullName: repo.fullName)
         )
-        let detail = detailDTO.toDomain()
+        let detail = mapToDomain(detailDTO)
         
         // 3. Save to persistent cache
         try? persistence.saveDetail(detail, for: repo.fullName)
@@ -100,5 +97,38 @@ class GitHubService: GitHubServiceProtocol {
             }
             return results
         }
+    }
+
+    // MARK: - Private Mappers
+
+    private func mapToDomain(_ dto: RepositoryDTO) -> Repository {
+        Repository(
+            id: dto.id,
+            name: dto.name,
+            fullName: dto.fullName,
+            description: dto.description,
+            fork: dto.fork,
+            htmlUrl: dto.htmlUrl,
+            owner: mapToDomain(dto.owner),
+            stargazersCount: dto.stargazersCount,
+            language: dto.language,
+            forksCount: dto.forksCount,
+            openIssuesCount: dto.openIssuesCount,
+            updatedAt: dto.updatedAt
+        )
+    }
+
+    private func mapToDomain(_ dto: OwnerDTO) -> Owner {
+        Owner(login: dto.login, avatarUrl: dto.avatarUrl, type: dto.type)
+    }
+
+    private func mapToDomain(_ dto: RepositoryDetailDTO) -> RepositoryDetail {
+        RepositoryDetail(
+            stargazersCount: dto.stargazersCount,
+            language: dto.language,
+            forksCount: dto.forksCount,
+            openIssuesCount: dto.openIssuesCount,
+            updatedAt: dto.updatedAt
+        )
     }
 }

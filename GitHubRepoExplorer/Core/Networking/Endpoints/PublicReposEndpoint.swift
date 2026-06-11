@@ -10,33 +10,38 @@ import Foundation
 enum PublicReposEndpoint: Endpoint {
 
     /// Initial or subsequent page of the public repository list.
-    /// - `initial`: hits `/repositories` on the configured base URL.
-    /// - `nextPage(URL)`: follows an absolute cursor URL from the `Link` header.
-    case repositories(GitHubAPIConfig)
-    case nextRepositories(URL)        // absolute cursor — bypasses base URL
+    case repositories
+    case nextRepositories(URL)
     /// Detail for a single repository, e.g. `/repos/mojombo/god`.
-    case repositoryDetail(fullName: String, config: GitHubAPIConfig)
+    case repositoryDetail(fullName: String)
 
-    // MARK: Endpoint
+    // MARK: - Constants
+    
+    private var baseURL: String { "https://api.github.com" }
+    
+    // MARK: - Endpoint
 
     var url: URL {
         get throws {
             switch self {
-            case .repositories(let config):
-                return try PathEndpointURL(baseURL: config.baseURL, path: "/repositories").resolve()
+            case .repositories:
+                return try PathEndpointURL(baseURL: baseURL, path: "/repositories").resolve()
 
             case .nextRepositories(let absoluteURL):
-                // Cursor URLs from GitHub's Link header are already fully qualified —
-                // use them as-is, no base URL composition needed.
                 return absoluteURL
 
-            case .repositoryDetail(let fullName, let config):
-                return try PathEndpointURL(baseURL: config.baseURL, path: "/repos/\(fullName)").resolve()
+            case .repositoryDetail(let fullName):
+                return try PathEndpointURL(baseURL: baseURL, path: "/repos/\(fullName)").resolve()
             }
         }
     }
 
-    var headers: [String: String]? { GitHubAPIConfig.defaultHeaders }
+    var headers: [String: String]? {
+        [
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+        ]
+    }
 }
 
 // MARK: - Helper: composing a URL from base + path

@@ -7,6 +7,8 @@
 
 import Foundation
 
+/// Full respopnse schema: https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-public-repositories
+
 struct RepositoryDTO: Codable {
     let id: Int
     let name: String
@@ -36,22 +38,5 @@ struct RepositoryDTO: Codable {
         case forksCount      = "forks_count"
         case openIssuesCount = "open_issues_count"
         case updatedAt       = "updated_at"
-    }
-
-    func toDomain() -> Repository {
-        Repository(
-            id: id,
-            name: name,
-            fullName: fullName,
-            description: description,
-            fork: fork,
-            htmlUrl: htmlUrl,
-            owner: owner.toDomain(),
-            stargazersCount: stargazersCount,
-            language: language,
-            forksCount: forksCount,
-            openIssuesCount: openIssuesCount,
-            updatedAt: updatedAt
-        )
     }
 }
