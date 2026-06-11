@@ -28,6 +28,10 @@ struct GitHubRepoExplorerApp: App {
 // MARK: - AppDelegate
 
 class AppDelegate: NSObject, UIApplicationDelegate {
+    private var isUITesting: Bool {
+        CommandLine.arguments.contains("--uitesting")
+    }
+    
     static let container = DependencyContainer()
     
     func application(_ application: UIApplication,
@@ -39,8 +43,18 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
     
     private func registerManagers() {
-        AppDelegate.container.register(githubService: GitHubService.shared,
-                                       bookmarkService: BookmarkService.shared,
-                                       repositoryUpdateService: RepositoryUpdateService.shared)
+        private func registerManagers() {
+            // Dependency Injection
+            if isUITesting {
+                // Note: These would need to be MainActor-isolated or handled carefully
+                AppDelegate.container.register(githubService: UITestGitHubService(),
+                                               bookmarkService: MockBookmarkService(behaviour: .noBookmarks),
+                                               repositoryUpdateService: MockRepositoryUpdateService())
+            } else {
+                AppDelegate.container.register(githubService: GitHubService.shared,
+                                               bookmarkService: BookmarkService.shared,
+                                               repositoryUpdateService: RepositoryUpdateService.shared)
+            }
+        }
     }
 }
