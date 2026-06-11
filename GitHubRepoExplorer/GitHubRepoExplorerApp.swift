@@ -8,25 +8,39 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - GitHubRepoExplorerApp
+
 @main
 struct GitHubRepoExplorerApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @State private var appCoordinator = AppCoordinator(container: AppDelegate.container)
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(appCoordinator: appCoordinator)
+                .onAppear {
+                    appCoordinator.start()
+                }
         }
-        .modelContainer(sharedModelContainer)
+    }
+}
+
+// MARK: - AppDelegate
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    static let container = DependencyContainer()
+    
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+
+        registerManagers()
+        
+        return true
+    }
+    
+    private func registerManagers() {
+        AppDelegate.container.register(githubService: GitHubService.shared,
+                                       bookmarkService: BookmarkService.shared,
+                                       repositoryUpdateService: RepositoryUpdateService.shared)
     }
 }

@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct RepoDetailView: View {
+    @Bindable var viewModel: RepoDetailViewModel
+    
     var body: some View {
         Text("RepoDetail")
     }

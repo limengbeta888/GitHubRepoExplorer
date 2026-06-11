@@ -9,53 +9,65 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Bindable var appCoordinator: AppCoordinator
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+        TabView(selection: $appCoordinator.selectedTab) {
+            repoTab
+                .tabItem { Label("Explore", systemImage: "globe") }
+                .tag(Tab.explore)
+                .accessibilityIdentifier("explore_tab")
+
+            bookmarkTab
+                .tabItem { Label("Bookmarks", systemImage: "bookmark.fill") }
+                .tag(Tab.bookmarks)
+                .accessibilityIdentifier("bookmarks_tab")
         }
     }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+    
+    @ViewBuilder
+    private var repoTab: some View {
+        @Bindable var repoCoordinator = appCoordinator.repoCoordinator
+        NavigationStack(path: $repoCoordinator.path) {
+            Group {
+                if let viewModel = repoCoordinator.repoListViewModel {
+                    RepoListView(viewModel: viewModel)
+                } else {
+                    ProgressView()
+                }
+            }
+            .navigationDestination(for: RepoDestination.self) { destination in
+                switch destination {
+                case .detail(let repo):
+                    RepoDetailView(viewModel: RepoDetailViewModel(
+                        repository: repo,
+                        container: appCoordinator.container
+                    ))
+                }
             }
         }
     }
-}
-
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+    
+    @ViewBuilder
+    private var bookmarkTab: some View {
+        @Bindable var bookmarkCoordinator = appCoordinator.bookmarkCoordinator
+        NavigationStack(path: $bookmarkCoordinator.path) {
+            Group {
+                if let viewModel = bookmarkCoordinator.bookmarkListViewModel {
+                    BookmarkListView(viewModel: viewModel)
+                } else {
+                    ProgressView()
+                }
+            }
+            .navigationDestination(for: BookmarkDestination.self) { destination in
+                switch destination {
+                case .detail(let repo):
+                    RepoDetailView(viewModel: RepoDetailViewModel(
+                        repository: repo,
+                        container: appCoordinator.container
+                    ))
+                }
+            }
+        }
+    }
 }

@@ -19,9 +19,9 @@ enum Tab: Hashable {
 final class AppCoordinator: Coordinator {
     var selectedTab: Tab = .explore
     
-    private let repoCoordinator: RepoCoordinator
-    private let bookmarkCoordinator: BookmarkCoordinator
-    private let container: DependencyContainer
+    let repoCoordinator: RepoCoordinator
+    let bookmarkCoordinator: BookmarkCoordinator
+    let container: DependencyContainer
     
     init(container: DependencyContainer) {
         self.container = container
