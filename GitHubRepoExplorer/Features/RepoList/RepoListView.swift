@@ -21,6 +21,7 @@ struct RepoListView: View {
                 repoList
             }
         }
+        .animation(.default, value: viewModel.phase)
         .navigationTitle("GitHub Repos")
         .navigationBarTitleDisplayMode(.automatic)
         .toolbar {
@@ -134,10 +135,10 @@ struct RepoListView: View {
                                 .foregroundStyle(Color.accentColor)
                                 .clipShape(Capsule())
                             
-                            Image(systemName: viewModel.collapsedGroups.contains(group.key)
-                                  ? "chevron.right" : "chevron.down")
+                            Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .rotationEffect(.degrees(viewModel.collapsedGroups.contains(group.key) ? 0 : 90))
                         }
                         .contentShape(Rectangle())
                     }
@@ -150,6 +151,7 @@ struct RepoListView: View {
             paginationFooter
         }
         .listStyle(.insetGrouped)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: viewModel.collapsedGroups)
         .accessibilityIdentifier("repo_list")
     }
 

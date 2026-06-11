@@ -8,7 +8,6 @@
 import Foundation
 import Combine
 import SwiftUI
-import Observation
 
 @Observable
 @MainActor
@@ -112,10 +111,12 @@ final class RepoListViewModel {
     }
     
     func toggleGroup(_ key: String) {
-        if collapsedGroups.contains(key) {
-            collapsedGroups.remove(key)
-        } else {
-            collapsedGroups.insert(key)
+        withAnimation(.easeInOut(duration: 0.3)) {
+            if collapsedGroups.contains(key) {
+                collapsedGroups.remove(key)
+            } else {
+                collapsedGroups.insert(key)
+            }
         }
     }
     
