@@ -1,2 +1,145 @@
 # GitHubRepoExplorer
-GitHubRepoExplorer is an iOS app built with Swift and SwiftUI that lets users browse public GitHub repositories, explore rich repository details, and bookmark favourites for offline reference. It demonstrates a clean MVVM-Coordinator architecture with a service-oriented design, comprehensive unit tests, and UI tests.
+
+GitHubRepoExplorer is a modern iOS application built with Swift and SwiftUI that allows users to browse public GitHub repositories, explore detailed repository information, and bookmark favorites for offline reference. It demonstrates a robust **MVVM-Coordinator** architecture with a service-oriented design, comprehensive unit tests, and automated UI tests.
+
+---
+
+## Features
+
+- **Infinite Scrolling**: Browse public GitHub repositories with seamless pagination.
+- **Dynamic Grouping**: Group repositories by owner type, fork status, language, or star count.
+- **Advanced Navigation**: Uses the **Coordinator pattern** to manage deep-linkable and testable navigation flows.
+- **Rich Details**: View enriched information including stars, forks, open issues, and primary language.
+- **Local Persistence**: Bookmark repositories for offline access using **SwiftData**.
+- **Real-time Synchronization**: Bookmark state and repository data are synchronized across all screens via Combine subjects.
+- **Smart Image Caching**: Custom-built image caching system to reduce network traffic and improve scrolling performance.
+- **Connectivity Monitoring**: Real-time network status tracking with global alerts for offline states.
+- **iPad Optimized**: Adaptive UI designed to work beautifully on both iPhone and iPad.
+- **Polished UX**: Smooth collapse/expand animations and optimized touch targets for a native feel.
+
+---
+
+## Development Environment
+
+- **Xcode**: 26.5
+- **Swift**: 5
+- **iOS Deployment Target**: 18.6+
+- **Architecture**: MVVM-Coordinator
+
+---
+
+## Third-Party Dependencies
+
+This project has **zero third-party dependencies** by design. All core functionalities are implemented using Apple's first-party frameworks:
+
+| Framework       | Usage                                                 |
+| --------------- | ----------------------------------------------------- |
+| **SwiftUI**     | Declarative UI and view-level state management        |
+| **SwiftData**   | Modern local persistence and bookmark storage         |
+| **Combine**     | Reactive data streams between services and ViewModels |
+| **Network**     | Connectivity monitoring via `NWPathMonitor`           |
+| **Observation** | Modern `@Observable` state tracking (iOS 17+)         |
+
+---
+
+## Code Structure
+
+```
+GitHubRepoExplorer/
+├── Features/
+│   ├── RepoList/             # Grouped list view + pagination logic
+│   ├── RepoDetail/           # Enriched repository detail screen
+│   └── BookmarkList/         # Local bookmark management
+├── Navigation/
+│   ├── Coordinator.swift     # Protocol-based navigation definition
+│   ├── AppCoordinator.swift  # Main flow orchestrator
+│   └── ...                   # Feature-specific coordinators
+├── Services/
+│   ├── GitHubService.swift   # REST API client with DTO-to-Domain mapping
+│   ├── BookmarkService.swift # Local business logic & sync
+│   ├── Persistence/          # SwiftData service & SDRepository models
+│   ├── ImageCache/           # Custom memory-efficient image loading
+│   └── Networking/           # Generic NetworkClient & DTO definitions
+├── Models/                   # Pure business logic domain models
+├── Mocks/                    # Comprehensive mocks for hermetic testing
+└── DependencyManager/        # Environment-based Dependency Injection
+```
+
+---
+
+## Architecture
+
+### MVVM-Coordinator
+
+The app uses a decoupled architecture that prioritizes testability and separation of concerns:
+
+- **Coordinators**: Own the navigation state (`NavigationPath`) and the lifecycle of ViewModels. They decouple views from the navigation hierarchy.
+- **ViewModels**: Marked with **`@MainActor`** and **`@Observable`**. They manage UI-specific logic, subscribe to background services, and provide clean data to the views.
+- **Service Layer**: Foundation of the app. Services are responsible for data fetching, persistence, and broadcasting updates via Combine.
+- **DTO Decoupling**: Networking models (DTOs) are strictly separated from domain models. `GitHubService` handles the mapping, ensuring API changes don't leak into the UI.
+
+### Dependency Injection
+
+Dependencies are managed through a centralized **`DependencyContainer`**, provided to the view hierarchy via the SwiftUI **`Environment`**. This allows for easy swapping of real services with mocks during unit and UI testing.
+
+---
+
+## Core Technical Strategies
+
+### Dynamic Grouping
+
+To provide a more organized browsing experience, the app supports multiple grouping modes:
+
+- **Owner Type**: Distinguishes between User and Organization repositories.
+- **Fork Status**: Separates original projects from forks.
+- **Language**: Groups by the primary programming language.
+- **Star Count (Star Bands)**: Instead of raw numbers, repositories are grouped into meaningful "Star Bands" (e.g., `1000+ ★`, `100–999 ★`, `10–99 ★`). This gives users an immediate sense of project popularity at a glance.
+
+### Cursor-Based Pagination
+
+The app implements the **GitHub Link Header** specification for pagination.
+
+- Rather than calculating page numbers manually, the app follows the absolute "next" URL provided by the GitHub API.
+- This ensures a robust "Infinite Scroll" experience where subsequent data is fetched only as the user nears the end of the list, preventing data duplication and optimizing network usage.
+
+### Graceful Error Handling
+
+The app employs a two-tier error handling strategy:
+
+- **Global Alerts**: Uses **`NWPathMonitor`** to detect connectivity loss in real-time. If the device goes offline, a global alert is presented to inform the user.
+- **Inline List Banners**: Non-fatal errors, such as hitting the GitHub API rate limit, are displayed as an inline banner within the repository list. This allows users to still interact with already-loaded data while providing a clear "Retry" action for the failed request.
+
+---
+
+## Testing
+
+### Unit Testing (Swift Testing Framework)
+
+The project utilizes the modern **Swift Testing** framework (Xcode 16+) for fast, deterministic, and parallel execution:
+
+- **ViewModel Tests**: Verify state transitions, service integration, and reactive updates.
+- **Service Tests**: Ensure business logic, error mapping, and cache expiry work correctly.
+- **Network Tests**: Use **`URLProtocol`** interception to verify the `NetworkClient` without hitting the internet.
+- **DTO Tests**: Validate parsing logic against real GitHub API JSON samples.
+
+### UI Testing (XCUITest)
+
+End-to-end UI tests cover critical user journeys:
+
+- Tap-based navigation and tab switching.
+- Complete bookmarking flow (Add -> Verify -> Remove).
+- Infinite scroll triggering and pagination verification.
+- Grouping logic and collapsible header interaction.
+
+---
+
+## AI Assistance
+
+This project was developed with the assistance of **Gemini CLI**, focusing on:
+
+- Architectural design and SOLID principle enforcement.
+- Implementation of modern Swift structured concurrency and actor isolation.
+- Test strategy optimisation (Deterministic async waiting vs. sleeps).
+- UI/UX polish and accessibility tree refinement.
+
+---
