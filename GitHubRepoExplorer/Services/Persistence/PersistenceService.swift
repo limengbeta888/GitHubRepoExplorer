@@ -56,6 +56,10 @@ final class PersistenceService: PersistenceServiceProtocol {
         self.context = ModelContext(container)
     }
 
+    private init(container: ModelContainer) {
+        self.context = ModelContext(container)
+    }
+    
     func saveDetail(_ detail: RepositoryDetail, for fullName: String) throws {
         if let existing = try fetchDetailModel(fullName: fullName) {
             existing.stargazersCount = detail.stargazersCount
@@ -89,10 +93,6 @@ final class PersistenceService: PersistenceServiceProtocol {
         )
         descriptor.fetchLimit = 1
         return try context.fetch(descriptor).first
-    }
-
-    init(container: ModelContainer) {
-        self.context = ModelContext(container)
     }
 
     // MARK: - PersistenceServiceProtocol
