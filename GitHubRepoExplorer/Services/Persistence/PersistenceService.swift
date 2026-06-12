@@ -50,7 +50,7 @@ final class PersistenceService: PersistenceServiceProtocol {
     private let context: ModelContext
 
     private init() {
-        let schema = Schema([RepositoryModel.self, RepositoryDetailModel.self])
+        let schema = Schema([SDRepository.self, SDRepositoryDetail.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         let container = try! ModelContainer(for: schema, configurations: config)
         self.context = ModelContext(container)
@@ -69,7 +69,7 @@ final class PersistenceService: PersistenceServiceProtocol {
             existing.updatedAt = detail.updatedAt
             existing.lastFetchedAt = Date()
         } else {
-            context.insert(RepositoryDetailModel(fullName: fullName, detail: detail))
+            context.insert(SDRepositoryDetail(fullName: fullName, detail: detail))
         }
         try save()
     }
@@ -87,8 +87,8 @@ final class PersistenceService: PersistenceServiceProtocol {
 
     // MARK: - Private
 
-    private func fetchDetailModel(fullName: String) throws -> RepositoryDetailModel? {
-        var descriptor = FetchDescriptor<RepositoryDetailModel>(
+    private func fetchDetailModel(fullName: String) throws -> SDRepositoryDetail? {
+        var descriptor = FetchDescriptor<SDRepositoryDetail>(
             predicate: #Predicate { $0.fullName == fullName }
         )
         descriptor.fetchLimit = 1
@@ -98,7 +98,7 @@ final class PersistenceService: PersistenceServiceProtocol {
     // MARK: - PersistenceServiceProtocol
 
     func add(_ repo: Repository) throws {
-        context.insert(RepositoryModel(from: repo))
+        context.insert(SDRepository(from: repo))
         try save()
     }
 
@@ -119,21 +119,21 @@ final class PersistenceService: PersistenceServiceProtocol {
     }
 
     func loadAllRepos() throws -> [Repository] {
-        let descriptor = FetchDescriptor<RepositoryModel>(
+        let descriptor = FetchDescriptor<SDRepository>(
             sortBy: [SortDescriptor(\.insertedAt, order: .reverse)]
         )
         return try context.fetch(descriptor).map { $0.toRepository() }
     }
 
     func deleteAllRepos() throws {
-        try context.delete(model: RepositoryModel.self)
+        try context.delete(model: SDRepository.self)
         try save()
     }
 
     // MARK: - Private
 
-    private func fetchModel(id: Int) throws -> RepositoryModel? {
-        var descriptor = FetchDescriptor<RepositoryModel>(
+    private func fetchModel(id: Int) throws -> SDRepository? {
+        var descriptor = FetchDescriptor<SDRepository>(
             predicate: #Predicate { $0.id == id }
         )
         descriptor.fetchLimit = 1
@@ -153,7 +153,7 @@ final class PersistenceService: PersistenceServiceProtocol {
 
 extension PersistenceService {
     static func inMemory() -> PersistenceService {
-        let schema = Schema([RepositoryModel.self, RepositoryDetailModel.self])
+        let schema = Schema([SDRepository.self, SDRepositoryDetail.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try! ModelContainer(for: schema, configurations: config)
         return PersistenceService(container: container)

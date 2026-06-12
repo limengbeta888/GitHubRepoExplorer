@@ -9,7 +9,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class RepositoryDetailModel {
+final class SDRepositoryDetail {
     @Attribute(.unique) var fullName: String
     var stargazersCount: Int?
     var language: String?

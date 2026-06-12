@@ -9,7 +9,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class RepositoryModel {
+final class SDRepository {
     @Attribute(.unique) var id: Int
     var name: String
     var fullName: String
