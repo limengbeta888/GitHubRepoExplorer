@@ -22,7 +22,7 @@ GitHubRepoExplorer is a modern iOS application built with Swift and SwiftUI that
 
 ## Development Environment
 
-- **Xcode**: 26.5
+- **Xcode**: 26.5+
 - **Swift**: 5
 - **iOS Deployment Target**: 18.6+
 - **Architecture**: MVVM-Coordinator
@@ -45,6 +45,8 @@ This project has **zero third-party dependencies** by design. All core functiona
 
 ## Code Structure
 
+### Application Structure
+
 ```
 GitHubRepoExplorer/
 ├── Features/
@@ -60,10 +62,26 @@ GitHubRepoExplorer/
 │   ├── BookmarkService.swift # Local business logic & sync
 │   ├── Persistence/          # SwiftData service & SDRepository models
 │   ├── ImageCache/           # Custom memory-efficient image loading
-│   └── Networking/           # Generic NetworkClient & DTO definitions
+│   ├── Networking/           # Generic NetworkClient & DTO definitions
+│   └── RepositoryUpdateService.swift # Cross-ViewModel enrichment propagation
+├── Shared/                   # Reusable SwiftUI components (AvatarView, RepoRowView)
 ├── Models/                   # Pure business logic domain models
 ├── Mocks/                    # Comprehensive mocks for hermetic testing
 └── DependencyManager/        # Environment-based Dependency Injection
+```
+
+### Testing Structure
+
+```
+GitHubRepoExplorerTests/
+├── TestViewModels/           # ViewModel state & logic tests
+├── TestDTOs/                 # JSON parsing & mapping tests
+├── Services/                 # Service-level business logic tests
+├── Mocks/                    # URLProtocol & network mocking utilities
+└── Helpers/                  # Test-specific extensions & waiters
+
+GitHubRepoExplorerUITests/
+└── GitHubRepoExplorerUITests.swift  # E2E flows (Navigation, Bookmarks, Pagination)
 ```
 
 ---
@@ -120,6 +138,7 @@ The project utilises the modern **Swift Testing** framework (Xcode 16+) for fast
 
 - **ViewModel Tests**: Verify state transitions, service integration, and reactive updates.
 - **Service Tests**: Ensure business logic, error mapping, and cache expiry work correctly.
+- **Enrichment Flow**: `RepositoryUpdateServiceTests` verifies the reactive synchronization of repository data across the app.
 - **Network Tests**: Use **`URLProtocol`** interception to verify the `NetworkClient` without hitting the internet.
 - **DTO Tests**: Validate parsing logic against real GitHub API JSON samples.
 
