@@ -12,7 +12,7 @@ GitHubRepoExplorer is a modern iOS application built with Swift and SwiftUI that
 - **Rich Details**: View enriched information including stars, forks, open issues, and primary language.
 - **Local Persistence**: Bookmark repositories for offline access using **SwiftData**.
 - **Persistent Detail Cache**: Repository details (stars, forks, etc.) are cached on disk with a configurable Time-To-Live (TTL), reducing redundant network calls.
-- **Real-time Synchronization**: Bookmark state and repository data are synchronised across all screens via Combine subjects.
+- **Real-time Synchronisation**: Bookmark state and repository data are synchronised across all screens via Combine subjects.
 - **Smart Image Caching**: Custom-built image caching system to reduce network traffic and improve scrolling performance.
 - **Connectivity Monitoring**: Real-time network status tracking with global alerts for offline states.
 - **iPad Optimised**: Adaptive UI designed to work beautifully on both iPhone and iPad.
@@ -91,7 +91,7 @@ Dependencies are managed through a centralised **`DependencyContainer`**, provid
 
 To provide a more organised browsing experience, the app supports multiple grouping modes:
 
-- **Owner Type**: Distinguishes between User and Organization repositories.
+- **Owner Type**: Distinguishes between User and Organisation repositories.
 - **Fork Status**: Separates original projects from forks.
 - **Language**: Groups by the primary programming language.
 - **Star Count (Star Bands)**: Instead of raw numbers, repositories are grouped into meaningful "Star Bands" (e.g., `1000+ ★`, `100–999 ★`, `10–99 ★`). This gives users an immediate sense of project popularity at a glance.
