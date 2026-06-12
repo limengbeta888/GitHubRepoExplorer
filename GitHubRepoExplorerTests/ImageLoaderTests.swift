@@ -9,20 +9,16 @@ import Foundation
 @testable import GitHubRepoExplorer
 
 @MainActor
-@Suite("ImageLoader Tests")
+@Suite("ImageLoader Tests", .serialized)
 struct ImageLoaderTests {
     
-    private let url = URL(string: "https://test.com/avatar.png")!
+    private let url = URL(string: "https://test.com/avatar_test.png")!
+    private let session: URLSession
     
     init() {
-        // Setup URLProtocol for every test
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockURLProtocol.self]
-        // Note: ImageLoader uses a static session, but we can still intercept 
-        // because URLProtocol is registered globally or we could refactor ImageLoader 
-        // to take a session. However, the standard session.data uses the shared 
-        // protocol registry if not specified.
-        // Actually, ImageLoader.session is private static, let's see.
+        self.session = URLSession(configuration: config)
     }
     
     @Test("Load from cache hit")
@@ -31,7 +27,7 @@ struct ImageLoaderTests {
         let testImage = UIImage()
         mockCache.stubbedImage = testImage
         
-        let loader = ImageLoader()
+        let loader = ImageLoader(session: session)
         await loader.load(from: url, cache: mockCache)
         
         #expect(loader.image === testImage)
@@ -41,9 +37,9 @@ struct ImageLoaderTests {
     @Test("Load from network success")
     func loadFromNetworkSuccess() async throws {
         let mockCache = MockImageCache()
-        let loader = ImageLoader()
+        let loader = ImageLoader(session: session)
         
-        // Use a real image data for UIImage(data:) to work
+        // Create a 1x1 pixel image to get real data
         let rect = CGRect(x: 0, y: 0, width: 1, height: 1)
         UIGraphicsBeginImageContext(rect.size)
         let context = UIGraphicsGetCurrentContext()!
@@ -53,12 +49,13 @@ struct ImageLoaderTests {
         UIGraphicsEndImageContext()
         let testData = testImage.pngData()!
         
-        MockURLProtocol.requestHandler = { request in
+        MockURLProtocol.setHandler(for: "/avatar_test_success.png") { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return (response, testData)
         }
         
-        await loader.load(from: url, cache: mockCache)
+        let successURL = URL(string: "https://test.com/avatar_test_success.png")!
+        await loader.load(from: successURL, cache: mockCache)
         
         #expect(loader.image != nil)
         #expect(mockCache.insertedImage != nil)
@@ -68,14 +65,15 @@ struct ImageLoaderTests {
     @Test("Load from network failure")
     func loadFromNetworkFailure() async {
         let mockCache = MockImageCache()
-        let loader = ImageLoader()
+        let loader = ImageLoader(session: session)
         
-        MockURLProtocol.requestHandler = { request in
+        MockURLProtocol.setHandler(for: "/avatar_test_fail.png") { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: 404, httpVersion: nil, headerFields: nil)!
             return (response, nil)
         }
         
-        await loader.load(from: url, cache: mockCache)
+        let failURL = URL(string: "https://test.com/avatar_test_fail.png")!
+        await loader.load(from: failURL, cache: mockCache)
         
         #expect(loader.image == nil)
         #expect(loader.isLoading == false)

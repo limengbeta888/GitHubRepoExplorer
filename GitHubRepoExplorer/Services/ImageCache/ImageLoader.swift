@@ -11,13 +11,17 @@ final class ImageLoader {
     var image: UIImage?
     var isLoading = false
     
-    private static let session: URLSession = {
+    private let session: URLSession
+    
+    private let defaultSession: URLSession = {
         let config = URLSessionConfiguration.default
         config.requestCachePolicy = .returnCacheDataElseLoad
         return URLSession(configuration: config)
     }()
     
-    init() {}
+    init(session: URLSession? = nil) {
+        self.session = session ?? defaultSession
+    }
     
     func load(from url: URL?, cache: ImageCacheProtocol) async {
         guard let url else { 
@@ -37,7 +41,7 @@ final class ImageLoader {
         defer { isLoading = false }
         
         do {
-            let (data, _) = try await Self.session.data(from: url)
+            let (data, _) = try await self.session.data(from: url)
             guard let fetchedImage = UIImage(data: data) else { return }
             
             // 3. Save to cache

@@ -11,6 +11,7 @@ import Combine
 @testable import GitHubRepoExplorer
 
 @MainActor
+@Suite("BookmarkServiceTests Tests", .serialized)
 struct BookmarkServiceTests {
     
     @Test("Add bookmark updates cache and notifies observers")

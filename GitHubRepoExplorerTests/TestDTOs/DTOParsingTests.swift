@@ -7,7 +7,8 @@ import Testing
 import Foundation
 @testable import GitHubRepoExplorer
 
-@Suite("DTO Parsing Tests")
+@MainActor
+@Suite("DTO Parsing Tests", .serialized)
 struct DTOParsingTests {
     
     private let decoder = JSONDecoder()

@@ -9,7 +9,7 @@ import SwiftData
 @testable import GitHubRepoExplorer
 
 @MainActor
-@Suite("PersistenceService Tests")
+@Suite("PersistenceService Tests", .serialized)
 struct PersistenceServiceTests {
     
     @Test("Add and load repositories")

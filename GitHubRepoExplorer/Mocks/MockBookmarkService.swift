@@ -38,7 +38,12 @@ final class MockBookmarkService: BookmarkServiceProtocol {
         let r3 = Repository.mockOrgRepo
         let r4 = Repository.mockZeroStars
         let r5 = Repository.mockStars1to9
-        self.repos = repos ?? [r1, r2, r3, r4, r5]
+        let defaultRepos = repos ?? [r1, r2, r3, r4, r5]
+        
+        if behaviour == .hasBookmarks {
+            self.cachedBookmarks = defaultRepos
+            self.cachedBookmarkedIDs = Set(defaultRepos.map(\.id))
+        }
     }
     
     @MainActor
@@ -72,14 +77,6 @@ final class MockBookmarkService: BookmarkServiceProtocol {
     
     @MainActor
     func loadAllBookmarks() {
-        switch behaviour {
-        case .hasBookmarks:
-            cachedBookmarks = repos
-            cachedBookmarkedIDs = Set(cachedBookmarks.map(\.id))
-        case .noBookmarks:
-            cachedBookmarks = []
-            cachedBookmarkedIDs = []
-        }
         bookmarksLoadedSubject.send(cachedBookmarks)
     }
     

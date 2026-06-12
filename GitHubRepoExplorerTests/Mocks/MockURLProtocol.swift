@@ -2,13 +2,25 @@
 //  MockURLProtocol.swift
 //  GitHubRepoExplorerTests
 //
-//  Created by Meng Li on 11/06/2026.
-//
 
 import Foundation
 
 final class MockURLProtocol: URLProtocol {
-    static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data?))?
+    /// Handlers keyed by URL path to support parallel testing
+    private static var handlers: [String: (URLRequest) throws -> (HTTPURLResponse, Data?)] = [:]
+    private static let lock = NSRecursiveLock()
+    
+    static func setHandler(for path: String, handler: @escaping (URLRequest) throws -> (HTTPURLResponse, Data?)) {
+        lock.lock()
+        handlers[path] = handler
+        lock.unlock()
+    }
+    
+    static func reset() {
+        lock.lock()
+        handlers.removeAll()
+        lock.unlock()
+    }
     
     override class func canInit(with request: URLRequest) -> Bool {
         return true
@@ -19,8 +31,18 @@ final class MockURLProtocol: URLProtocol {
     }
     
     override func startLoading() {
-        guard let handler = MockURLProtocol.requestHandler else {
-            fatalError("Handler is not set.")
+        let path = request.url?.path ?? ""
+        
+        MockURLProtocol.lock.lock()
+        let handler = MockURLProtocol.handlers[path]
+        MockURLProtocol.lock.unlock()
+        
+        guard let handler = handler else {
+            // Fallback to a default error if no handler matches the path
+            let response = HTTPURLResponse(url: request.url!, statusCode: 404, httpVersion: nil, headerFields: nil)!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocolDidFinishLoading(self)
+            return
         }
         
         do {

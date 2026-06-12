@@ -12,7 +12,7 @@ import SwiftUI
 @testable import GitHubRepoExplorer
 
 @MainActor
-@Suite("RepoDetailViewModel Tests")
+@Suite("RepoDetailViewModel Tests", .serialized)
 struct RepoDetailViewModelTests {
     
     private func setupContainer(behaviour: MockGitHubService.Behaviour = .success) -> DependencyContainer {

@@ -9,7 +9,7 @@ import Foundation
 @testable import GitHubRepoExplorer
 
 @MainActor
-@Suite("ImageCache Tests")
+@Suite("ImageCache Tests", .serialized)
 struct ImageCacheTests {
     
     @Test("Insert and retrieve image")

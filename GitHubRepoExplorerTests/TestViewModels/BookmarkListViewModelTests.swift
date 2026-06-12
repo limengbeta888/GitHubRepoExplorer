@@ -12,7 +12,7 @@ import SwiftUI
 @testable import GitHubRepoExplorer
 
 @MainActor
-@Suite("BookmarkListViewModel Tests")
+@Suite("BookmarkListViewModel Tests", .serialized)
 struct BookmarkListViewModelTests {
     
     private func setupContainer(behaviour: MockBookmarkService.Behaviour = .hasBookmarks) -> DependencyContainer {
@@ -55,8 +55,8 @@ struct BookmarkListViewModelTests {
         
         viewModel.removeBookmark(repoToRemove)
         
-        // The service notifies back via bookmarkRemoved, which triggers loadBookmarks()
-        await Task.yield()
+        // Poll until the condition is met or timeout
+        try await TestHelpers.shared.waitForCondition { viewModel.bookmarkedRepos.count == initialCount - 1 }
         
         #expect(viewModel.bookmarkedRepos.count == initialCount - 1)
         #expect(!viewModel.bookmarkedRepos.contains(where: { $0.id == repoToRemove.id }))
@@ -77,8 +77,8 @@ struct BookmarkListViewModelTests {
         let newRepo = Repository.mockOriginal
         container.bookmarkService.addBookmark(newRepo)
         
-        // ViewModel observes bookmarkService.bookmarkAdded and reloads
-        await Task.yield()
+        // Poll until the condition is met or timeout
+        try await TestHelpers.shared.waitForCondition { viewModel.bookmarkedRepos.count == 1 }
         
         #expect(viewModel.bookmarkedRepos.count == 1)
         #expect(viewModel.bookmarkedRepos[0].id == newRepo.id)

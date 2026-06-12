@@ -10,7 +10,8 @@ import Combine
 import Foundation
 @testable import GitHubRepoExplorer
 
-@Suite("RepositoryUpdateService Tests")
+@MainActor
+@Suite("RepositoryUpdateService Tests", .serialized)
 struct RepositoryUpdateServiceTests {
     
     @Test("Publish single repository enrichment")
