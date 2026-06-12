@@ -11,11 +11,12 @@ GitHubRepoExplorer is a modern iOS application built with Swift and SwiftUI that
 - **Advanced Navigation**: Uses the **Coordinator pattern** to manage deep-linkable and testable navigation flows.
 - **Rich Details**: View enriched information including stars, forks, open issues, and primary language.
 - **Local Persistence**: Bookmark repositories for offline access using **SwiftData**.
-- **Real-time Synchronization**: Bookmark state and repository data are synchronized across all screens via Combine subjects.
+- **Persistent Detail Cache**: Repository details (stars, forks, etc.) are cached on disk with a configurable Time-To-Live (TTL), reducing redundant network calls.
+- **Real-time Synchronization**: Bookmark state and repository data are synchronised across all screens via Combine subjects.
 - **Smart Image Caching**: Custom-built image caching system to reduce network traffic and improve scrolling performance.
 - **Connectivity Monitoring**: Real-time network status tracking with global alerts for offline states.
-- **iPad Optimized**: Adaptive UI designed to work beautifully on both iPhone and iPad.
-- **Polished UX**: Smooth collapse/expand animations and optimized touch targets for a native feel.
+- **iPad Optimised**: Adaptive UI designed to work beautifully on both iPhone and iPad.
+- **Polished UX**: Smooth collapse/expand animations and optimised touch targets for a native feel.
 
 ---
 
@@ -71,7 +72,7 @@ GitHubRepoExplorer/
 
 ### MVVM-Coordinator
 
-The app uses a decoupled architecture that prioritizes testability and separation of concerns:
+The app uses a decoupled architecture that prioritises testability and separation of concerns:
 
 - **Coordinators**: Own the navigation state (`NavigationPath`) and the lifecycle of ViewModels. They decouple views from the navigation hierarchy.
 - **ViewModels**: Marked with **`@MainActor`** and **`@Observable`**. They manage UI-specific logic, subscribe to background services, and provide clean data to the views.
@@ -80,7 +81,7 @@ The app uses a decoupled architecture that prioritizes testability and separatio
 
 ### Dependency Injection
 
-Dependencies are managed through a centralized **`DependencyContainer`**, provided to the view hierarchy via the SwiftUI **`Environment`**. This allows for easy swapping of real services with mocks during unit and UI testing.
+Dependencies are managed through a centralised **`DependencyContainer`**, provided to the view hierarchy via the SwiftUI **`Environment`**. This allows for easy swapping of real services with mocks during unit and UI testing.
 
 ---
 
@@ -88,7 +89,7 @@ Dependencies are managed through a centralized **`DependencyContainer`**, provid
 
 ### Dynamic Grouping
 
-To provide a more organized browsing experience, the app supports multiple grouping modes:
+To provide a more organised browsing experience, the app supports multiple grouping modes:
 
 - **Owner Type**: Distinguishes between User and Organization repositories.
 - **Fork Status**: Separates original projects from forks.
@@ -115,7 +116,7 @@ The app employs a two-tier error handling strategy:
 
 ### Unit Testing (Swift Testing Framework)
 
-The project utilizes the modern **Swift Testing** framework (Xcode 16+) for fast, deterministic, and parallel execution:
+The project utilises the modern **Swift Testing** framework (Xcode 16+) for fast, deterministic, and parallel execution:
 
 - **ViewModel Tests**: Verify state transitions, service integration, and reactive updates.
 - **Service Tests**: Ensure business logic, error mapping, and cache expiry work correctly.
@@ -130,6 +131,38 @@ End-to-end UI tests cover critical user journeys:
 - Complete bookmarking flow (Add -> Verify -> Remove).
 - Infinite scroll triggering and pagination verification.
 - Grouping logic and collapsible header interaction.
+
+---
+
+## Known Limitations
+
+### GitHub API Rate Limiting
+
+The GitHub public API is unauthenticated and subject to a **60 requests/hour** limit. Since fetching detail for each repository (stars, forks, language, etc.) requires a separate API call per repository, fetching detail for a full page of 100 repositories would immediately exhaust the entire hourly limit.
+
+Currently, the app fetches details lazily when a user navigates to a repository's detail screen, or for the visible set when grouping by Stars/Language is active.
+
+---
+
+## Future Improvements
+
+**1. Lazy Detail Fetching for Visible Rows Only**
+To optimise quota usage, a planned improvement is to fetch details only for rows currently visible on screen. This would use `onAppear`/`onDisappear` combined with a debounce mechanism to ensure only repositories the user actually pauses on consume the rate limit.
+
+**2. GitHub Authentication**
+Adding support for GitHub Personal Access Tokens (PAT) would raise the rate limit from 60 to 5,000 requests/hour. This would make background pre-fetching for the entire list viable and improve the overall "out-of-the-box" experience.
+
+**3. Background Sync for Bookmarks**
+A planned enhancement is to automatically pre-fetch and store the full `RepositoryDetail` for any bookmarked repository in the background. This would ensure that even if a repository was bookmarked while the details were unknown, the app will eventually make them available for offline viewing.
+
+**4. Contacts-style Index Bar**
+The current grouped list becomes hard to navigate when many sections are present. An alphabetical index bar on the right edge (similar to the iOS Contacts app) would allow users to jump directly to specific sections.
+
+**5. Adaptive iPad Layouts**
+Implementing **`NavigationSplitView`** to make better use of iPad screen real estate. This would allow the repository list to stay visible in a primary column while the detail view updates in the secondary area.
+
+**6. Dependency Injection with Swinject**
+While the current hand-rolled `DependencyContainer` works well, migrating to [Swinject](https://github.com/Swinject/Swinject) would provide better scope management (singleton, transient, graph) and clearer assembly-based registration as the app scales.
 
 ---
 
