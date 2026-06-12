@@ -49,11 +49,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             // Note: These would need to be MainActor-isolated or handled carefully
             AppDelegate.container.register(githubService: UITestGitHubService(),
                                            bookmarkService: MockBookmarkService(behaviour: .noBookmarks),
-                                           repositoryUpdateService: MockRepositoryUpdateService())
+                                           repositoryUpdateService: MockRepositoryUpdateService(),
+                                           networkMonitor: MockNetworkMonitor(isConnected: true))
         } else {
             AppDelegate.container.register(githubService: GitHubService.shared,
                                            bookmarkService: BookmarkService.shared,
-                                           repositoryUpdateService: RepositoryUpdateService.shared)
+                                           repositoryUpdateService: RepositoryUpdateService.shared,
+                                           networkMonitor: NetworkMonitor.shared)
         }
     }
 }

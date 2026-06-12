@@ -10,6 +10,7 @@ import SwiftData
 
 struct ContentView: View {
     @Bindable var appCoordinator: AppCoordinator
+    @State private var showNetworkAlert = false
 
     var body: some View {
         TabView(selection: $appCoordinator.selectedTab) {
@@ -22,6 +23,21 @@ struct ContentView: View {
                 .tabItem { Label("Bookmarks", systemImage: "bookmark.fill") }
                 .tag(Tab.bookmarks)
                 .accessibilityIdentifier("bookmarks_tab")
+        }
+        .alert("No Internet Connection", isPresented: $showNetworkAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Please check your internet settings and try again.")
+        }
+        .onChange(of: (appCoordinator.networkMonitor as? NetworkMonitor)?.isConnected) { oldValue, newValue in
+            if newValue == false {
+                showNetworkAlert = true
+            }
+        }
+        .onAppear {
+            if (appCoordinator.networkMonitor as? NetworkMonitor)?.isConnected == false {
+                showNetworkAlert = true
+            }
         }
     }
     

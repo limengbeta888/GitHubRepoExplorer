@@ -17,19 +17,22 @@ final class DependencyContainer {
     private(set) var repositoryUpdateService: RepositoryUpdateServiceProtocol
     private(set) var persistenceService: PersistenceServiceProtocol
     private(set) var imageCache: ImageCacheProtocol
+    private(set) var networkMonitor: NetworkMonitorProtocol
 
     init(
         githubService: GitHubServiceProtocol = GitHubService.shared,
         bookmarkService: BookmarkServiceProtocol = BookmarkService.shared,
         repositoryUpdateService: RepositoryUpdateServiceProtocol = RepositoryUpdateService.shared,
         persistenceService: PersistenceServiceProtocol = PersistenceService.shared,
-        imageCache: ImageCacheProtocol? = nil
+        imageCache: ImageCacheProtocol? = nil,
+        networkMonitor: NetworkMonitorProtocol = NetworkMonitor.shared
     ) {
         self.githubService = githubService
         self.bookmarkService = bookmarkService
         self.repositoryUpdateService = repositoryUpdateService
         self.persistenceService = persistenceService
         self.imageCache = imageCache ?? ImageCache.shared
+        self.networkMonitor = networkMonitor
     }
     
     /// Use this method to re-initialize the container with mocks for testing.
@@ -38,7 +41,8 @@ final class DependencyContainer {
         bookmarkService: BookmarkServiceProtocol? = nil,
         repositoryUpdateService: RepositoryUpdateServiceProtocol? = nil,
         persistenceService: PersistenceServiceProtocol? = nil,
-        imageCache: ImageCacheProtocol? = nil
+        imageCache: ImageCacheProtocol? = nil,
+        networkMonitor: NetworkMonitorProtocol? = nil
     ) {
         if let githubService {
             self.githubService = githubService
@@ -58,6 +62,10 @@ final class DependencyContainer {
 
         if let imageCache {
             self.imageCache = imageCache
+        }
+
+        if let networkMonitor {
+            self.networkMonitor = networkMonitor
         }
     }
 }

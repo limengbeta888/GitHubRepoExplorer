@@ -79,6 +79,8 @@ struct RepoRowView: View {
             }
         }
         .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .accessibilityIdentifier("repo_row")
         .accessibilityLabel(repo.name)
     }

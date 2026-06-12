@@ -22,9 +22,11 @@ final class AppCoordinator: Coordinator {
     let repoCoordinator: RepoCoordinator
     let bookmarkCoordinator: BookmarkCoordinator
     let container: DependencyContainer
-    
+    let networkMonitor: NetworkMonitorProtocol
+
     init(container: DependencyContainer) {
         self.container = container
+        self.networkMonitor = container.networkMonitor
         self.repoCoordinator = RepoCoordinator(container: container)
         self.bookmarkCoordinator = BookmarkCoordinator(container: container)
     }
