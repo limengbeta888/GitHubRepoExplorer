@@ -45,36 +45,37 @@ final class GitHubRepoExplorerUITests: XCTestCase {
     func test_bookmark_flow() throws {
         let repoList = app.collectionViews["repo_list"]
         XCTAssertTrue(repoList.waitForExistence(timeout: 10))
+
+        // 1. Find and tap a repo (e.g. "swift" from Organization group)
+        let swiftRepo = app.buttons["repo_cell_swift"].firstMatch
         
-        // 1. Find and tap a repo
-        let godRepo = repoList.buttons["god"].firstMatch
-        XCTAssertTrue(godRepo.waitForExistence(timeout: 10))
-        godRepo.tap()
-        
+        XCTAssertTrue(swiftRepo.waitForExistence(timeout: 10))
+        swiftRepo.tap()
+
         // 2. Bookmark it
         let bookmarkButton = app.buttons["bookmark_button"]
         XCTAssertTrue(bookmarkButton.waitForExistence(timeout: 10))
         bookmarkButton.tap()
-        
+
         // Verify state change
         XCTAssertTrue(app.buttons["bookmark_fill_button"].waitForExistence(timeout: 10))
-        
+
         // 3. Go back and check Bookmarks tab
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.tabBars.buttons.element(boundBy: 1).tap()
-        
+
         let bookmarkList = app.collectionViews["bookmark_list"]
         XCTAssertTrue(bookmarkList.waitForExistence(timeout: 10))
-        XCTAssertTrue(bookmarkList.buttons["god"].exists)
-        
+        XCTAssertTrue(app.buttons["repo_cell_swift"].waitForExistence(timeout: 5))
+
         // 4. Remove via swipe
-        let bookmarkedGod = bookmarkList.buttons["god"].firstMatch
-        bookmarkedGod.swipeLeft()
-        
+        let bookmarkedSwift = app.buttons["repo_cell_swift"].firstMatch
+        bookmarkedSwift.swipeLeft()
+
         let removeButton = app.buttons["Remove"].firstMatch
         XCTAssertTrue(removeButton.waitForExistence(timeout: 5))
         removeButton.tap()
-        
+
         // Verify empty state
         XCTAssertTrue(app.staticTexts["No Bookmarks"].waitForExistence(timeout: 5))
     }
@@ -84,7 +85,7 @@ final class GitHubRepoExplorerUITests: XCTestCase {
         XCTAssertTrue(repoList.waitForExistence(timeout: 5))
         
         // Verify initial grouping (Owner Type)
-        XCTAssertTrue(app.staticTexts["User"].exists)
+        XCTAssertTrue(app.staticTexts["User"].waitForExistence(timeout: 5))
         
         // Change grouping to Stars
         let groupButton = app.buttons["Group"]
@@ -116,26 +117,18 @@ final class GitHubRepoExplorerUITests: XCTestCase {
     func test_pagination_scroll() throws {
         let repoList = app.collectionViews["repo_list"]
         XCTAssertTrue(repoList.waitForExistence(timeout: 5))
-        
-        let initialCellCount = repoList.cells.count
-        
-        // Swipe up multiple times to reach the bottom and trigger load more
+
+        // "cool-tool" only exists in the second page of our UITestGitHubService
+        let nextPageRepo = app.buttons["repo_cell_cool-tool"]
+        XCTAssertFalse(nextPageRepo.exists)
+
+        // Scroll to the bottom to trigger pagination
+        // Swiping multiple times ensures we pass the initial list
         repoList.swipeUp(velocity: .fast)
         repoList.swipeUp(velocity: .fast)
         repoList.swipeUp(velocity: .fast)
         
-        // Check if more cells are loaded
-        // We use a small wait because pagination is async
-        let expectation = XCTestExpectation(description: "Wait for more cells")
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-            if repoList.cells.count > initialCellCount {
-                expectation.fulfill()
-            }
-        }
-        
-        wait(for: [expectation], timeout: 10.0)
-        timer.invalidate()
-        
-        XCTAssertTrue(repoList.cells.count > initialCellCount)
+        // Wait for the new repo to appear asynchronously
+        XCTAssertTrue(nextPageRepo.waitForExistence(timeout: 10))
     }
 }

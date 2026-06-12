@@ -115,6 +115,7 @@ struct RepoListView: View {
                             .swipeActions(edge: .trailing) {
                                 bookmarkSwipeButton(for: repo)
                             }
+                            .accessibilityIdentifier("repo_cell_\(repo.name)")
                             .accessibilityLabel(repo.name)
                         }
                     }
@@ -143,11 +144,12 @@ struct RepoListView: View {
                                 .rotationEffect(.degrees(viewModel.collapsedGroups.contains(group.key) ? 0 : 90))
                         }
                         .contentShape(Rectangle())
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("group_header")
+                        .accessibilityLabel("\(group.key), \(group.repos.count)")
                     }
                     .buttonStyle(.plain)
                 }
-                .accessibilityIdentifier("group_header")
-                .accessibilityLabel("\(group.key), \(group.repos.count)")
             }
             
             paginationFooter
@@ -194,14 +196,19 @@ struct RepoListView: View {
                     Spacer()
                 }
                 .listRowBackground(Color.clear)
+                .accessibilityIdentifier("pagination_loading")
 
             case .loaded where viewModel.hasMorePages && viewModel.hasVisibleRows:
-                Color.clear
-                    .frame(height: 1)
-                    .listRowBackground(Color.clear)
-                    .onAppear {
-                        viewModel.loadMore()
-                    }
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
+                .accessibilityIdentifier("pagination_trigger")
+                .onAppear {
+                    viewModel.loadMore()
+                }
 
             case .loaded where !viewModel.hasMorePages && !viewModel.repositories.isEmpty:
                 Text("All repositories loaded")

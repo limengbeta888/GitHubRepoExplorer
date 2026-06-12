@@ -59,7 +59,7 @@ struct BookmarkListView: View {
                         Label("Remove", systemImage: "bookmark.slash")
                     }
                 }
-                .accessibilityIdentifier("repo_row")
+                .accessibilityIdentifier("repo_cell_\(repo.name)")
             }
         }
         .listStyle(.insetGrouped)
