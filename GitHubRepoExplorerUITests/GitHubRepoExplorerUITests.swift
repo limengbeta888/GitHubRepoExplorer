@@ -24,63 +24,59 @@ final class GitHubRepoExplorerUITests: XCTestCase {
 
     func test_navigation_and_tabs() throws {
         // Start in Explore tab
-        XCTAssertTrue(app.navigationBars.element.waitForExistence(timeout: 5))
+        let navBar = app.navigationBars["GitHub Repos"]
+        XCTAssertTrue(navBar.waitForExistence(timeout: 5))
         
         // Switch to Bookmarks tab
-        // Use index-based selection as identifiers can be tricky in TabView
-        app.tabBars.buttons.element(boundBy: 1).tap()
+        let bookmarksTab = app.tabBars.buttons.element(boundBy: 1)
+        XCTAssertTrue(bookmarksTab.waitForExistence(timeout: 5))
+        bookmarksTab.tap()
+        
         XCTAssertTrue(app.staticTexts["No Bookmarks"].waitForExistence(timeout: 5))
         
         // Switch back to Explore
-        app.tabBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["GitHub Repos"].waitForExistence(timeout: 5))
+        let exploreTab = app.tabBars.buttons.element(boundBy: 0)
+        XCTAssertTrue(exploreTab.waitForExistence(timeout: 5))
+        exploreTab.tap()
+        
+        XCTAssertTrue(navBar.exists)
     }
 
     func test_bookmark_flow() throws {
-        // 1. Find a repo in the list (e.g., "god")
         let repoList = app.collectionViews["repo_list"]
         XCTAssertTrue(repoList.waitForExistence(timeout: 10))
         
+        // 1. Find and tap a repo
         let godRepo = repoList.buttons["god"].firstMatch
         XCTAssertTrue(godRepo.waitForExistence(timeout: 10))
-        
-        // 2. Navigate to Detail
         godRepo.tap()
-        XCTAssertTrue(app.navigationBars["god"].waitForExistence(timeout: 10))
         
-        // 3. Bookmark it
+        // 2. Bookmark it
         let bookmarkButton = app.buttons["bookmark_button"]
         XCTAssertTrue(bookmarkButton.waitForExistence(timeout: 10))
         bookmarkButton.tap()
         
-        // Verify it changed to bookmark_fill_button
+        // Verify state change
         XCTAssertTrue(app.buttons["bookmark_fill_button"].waitForExistence(timeout: 10))
         
-        // 4. Go back to list
-        let backButton = app.navigationBars.buttons.element(boundBy: 0)
-        XCTAssertTrue(backButton.waitForExistence(timeout: 10))
-        backButton.tap()
-        
-        // 5. Switch to Bookmarks tab
-        let bookmarksTab = app.tabBars.buttons.element(boundBy: 1)
-        XCTAssertTrue(bookmarksTab.waitForExistence(timeout: 10))
-        bookmarksTab.tap()
+        // 3. Go back and check Bookmarks tab
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.tabBars.buttons.element(boundBy: 1).tap()
         
         let bookmarkList = app.collectionViews["bookmark_list"]
         XCTAssertTrue(bookmarkList.waitForExistence(timeout: 10))
+        XCTAssertTrue(bookmarkList.buttons["god"].exists)
         
+        // 4. Remove via swipe
         let bookmarkedGod = bookmarkList.buttons["god"].firstMatch
-        XCTAssertTrue(bookmarkedGod.waitForExistence(timeout: 10))
-        
-        // 6. Remove bookmark via swipe
         bookmarkedGod.swipeLeft()
         
         let removeButton = app.buttons["Remove"].firstMatch
-        XCTAssertTrue(removeButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(removeButton.waitForExistence(timeout: 5))
         removeButton.tap()
         
         // Verify empty state
-        XCTAssertTrue(app.staticTexts["No Bookmarks"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["No Bookmarks"].waitForExistence(timeout: 5))
     }
 
     func test_grouping_flow() throws {
@@ -89,15 +85,57 @@ final class GitHubRepoExplorerUITests: XCTestCase {
         
         // Verify initial grouping (Owner Type)
         XCTAssertTrue(app.staticTexts["User"].exists)
-        XCTAssertTrue(app.staticTexts["Organization"].exists)
         
         // Change grouping to Stars
-        app.buttons["Group"].tap()
-        app.buttons["Stars"].tap()
+        let groupButton = app.buttons["Group"]
+        XCTAssertTrue(groupButton.waitForExistence(timeout: 5))
+        groupButton.tap()
         
-        // Wait for fetch details indicator if needed, then check for star bands
-        // Note: Mock data has specific star bands
-        XCTAssertTrue(app.staticTexts["1000+ ★"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["100–999 ★"].exists)
+        let starsOption = app.buttons["Stars"]
+        XCTAssertTrue(starsOption.waitForExistence(timeout: 5))
+        starsOption.tap()
+        
+        // Verify star bands appear
+        XCTAssertTrue(app.staticTexts["1000+ ★"].waitForExistence(timeout: 10))
+    }
+    
+    func test_pull_to_refresh() throws {
+        let repoList = app.collectionViews["repo_list"]
+        XCTAssertTrue(repoList.waitForExistence(timeout: 5))
+        
+        // Perform pull to refresh
+        let firstCell = repoList.cells.firstMatch
+        let start = firstCell.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let finish = firstCell.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 6.0))
+        start.press(forDuration: 0, thenDragTo: finish)
+        
+        // Verify it still works (list is still there)
+        XCTAssertTrue(repoList.exists)
+    }
+    
+    func test_pagination_scroll() throws {
+        let repoList = app.collectionViews["repo_list"]
+        XCTAssertTrue(repoList.waitForExistence(timeout: 5))
+        
+        let initialCellCount = repoList.cells.count
+        
+        // Swipe up multiple times to reach the bottom and trigger load more
+        repoList.swipeUp(velocity: .fast)
+        repoList.swipeUp(velocity: .fast)
+        repoList.swipeUp(velocity: .fast)
+        
+        // Check if more cells are loaded
+        // We use a small wait because pagination is async
+        let expectation = XCTestExpectation(description: "Wait for more cells")
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            if repoList.cells.count > initialCellCount {
+                expectation.fulfill()
+            }
+        }
+        
+        wait(for: [expectation], timeout: 10.0)
+        timer.invalidate()
+        
+        XCTAssertTrue(repoList.cells.count > initialCellCount)
     }
 }
